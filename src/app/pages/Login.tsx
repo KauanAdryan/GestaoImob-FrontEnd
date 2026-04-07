@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Building2, Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -21,11 +21,9 @@ export default function Login() {
     }
 
     setLoading(true);
-    // Simula autenticação
     await new Promise((res) => setTimeout(res, 1500));
     setLoading(false);
 
-    // Exemplo de erro de autenticação:
     if (password !== '123456') {
       setError('E-mail ou senha incorretos. Tente novamente.');
     } else {
@@ -35,7 +33,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex" style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
-      {/* Painel Esquerdo — Visual */}
+
+      {/* Painel Esquerdo — Visual Ailos */}
       <div
         className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden"
         style={{
@@ -43,53 +42,58 @@ export default function Login() {
         }}
       >
         {/* Padrão geométrico de fundo */}
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-[0.07]">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="1" />
+              <pattern id="hexgrid" width="56" height="56" patternUnits="userSpaceOnUse">
+                <path d="M28 4L52 18V46L28 60L4 46V18Z" fill="none" stroke="white" strokeWidth="1" />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
+            <rect width="100%" height="100%" fill="url(#hexgrid)" />
           </svg>
         </div>
 
-        {/* Círculos decorativos */}
+        {/* Brilho decorativo */}
         <div
-          className="absolute -top-20 -right-20 w-96 h-96 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #93c5fd, transparent)' }}
+          className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #93c5fd, transparent 70%)' }}
         />
         <div
-          className="absolute bottom-20 -left-20 w-72 h-72 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #bfdbfe, transparent)' }}
+          className="absolute bottom-10 -left-24 w-80 h-80 rounded-full opacity-15"
+          style={{ background: 'radial-gradient(circle, #bfdbfe, transparent 70%)' }}
         />
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/30">
-            <Building2 className="w-6 h-6 text-white" />
+            <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <span className="text-white font-bold text-xl tracking-tight">GestãoImob</span>
+          <span className="text-white font-bold text-xl tracking-tight">Gestão de Bens</span>
         </div>
 
         {/* Conteúdo central */}
         <div className="relative z-10 space-y-8">
-          {/* Ícone de destaque */}
-          <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center border border-white/20 backdrop-blur-sm">
-            <Building2 className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center border border-white/20 backdrop-blur-sm"
+            style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <svg viewBox="0 0 48 48" fill="none" className="w-10 h-10 text-white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 18L24 6L42 18V42H30V30H18V42H6V18Z" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
 
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-white leading-tight">
               Gestão de imóveis<br />
-              <span className="text-[#a8d4e6]">simplificada.</span>
+              <span style={{ color: '#a8d4e6' }}>simplificada.</span>
             </h1>
-            <p className="text-[#cce8f4] text-lg leading-relaxed max-w-xs">
+            <p className="text-lg leading-relaxed max-w-xs" style={{ color: '#cce8f4' }}>
               Controle imóveis, contratos, inquilinos e financeiro em um só lugar.
             </p>
           </div>
 
-          {/* Estatísticas rápidas */}
+          {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
             {[
               { label: 'Imóveis', value: '1.2k+' },
@@ -98,10 +102,11 @@ export default function Login() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 text-center"
+                className="rounded-2xl p-4 text-center border border-white/10 backdrop-blur-sm"
+                style={{ background: 'rgba(255,255,255,0.08)' }}
               >
                 <div className="text-white font-bold text-xl">{stat.value}</div>
-                <div className="text-[#a8d4e6] text-xs mt-1">{stat.label}</div>
+                <div className="text-xs mt-1" style={{ color: '#a8d4e6' }}>{stat.label}</div>
               </div>
             ))}
           </div>
@@ -109,38 +114,53 @@ export default function Login() {
 
         {/* Rodapé */}
         <div className="relative z-10">
-          <p className="text-[#a8d4e6] text-sm">© 2026 ProjetoSenac. Todos os direitos reservados.</p>
+          <p className="text-sm" style={{ color: '#a8d4e6' }}>© 2026 Ailos — Gestão de Bens</p>
         </div>
       </div>
 
       {/* Painel Direito — Formulário */}
-      <div className="w-full lg:w-1/2 flex flex-col bg-gray-50">
+      <div className="w-full lg:w-1/2 flex flex-col bg-[#FAFAFA]">
         {/* Header mobile */}
         <div className="lg:hidden flex items-center gap-2 px-6 py-5 bg-white border-b border-gray-100">
-          <Building2 className="w-6 h-6 text-[#165c7d]" />
-          <span className="font-bold text-gray-900">GestãoImob</span>
+          <span className="font-bold text-gray-900" style={{ color: '#165c7d' }}>Gestão de Bens</span>
         </div>
 
         {/* Formulário centrado */}
         <div className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-md space-y-8">
 
+            {/* Badge sistema */}
+            <div className="hidden lg:block">
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+                style={{ background: '#E1EBF0', color: '#165C7D' }}
+              >
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#165C7D' }} />
+                Sistema Ailos
+              </div>
+            </div>
+
             {/* Cabeçalho */}
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Bem-vindo de volta</h2>
-              <p className="text-gray-500 text-base">Entre com suas credenciais para continuar.</p>
+              <h2 className="text-3xl font-bold tracking-tight" style={{ color: '#1A1A1A' }}>
+                Bem-vindo de volta
+              </h2>
+              <p className="text-base" style={{ color: '#6A6A6A' }}>
+                Entre com suas credenciais para continuar.
+              </p>
             </div>
 
             {/* Formulário */}
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Campo E-mail */}
+
+              {/* E-mail */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700" htmlFor="email">
+                <label className="text-sm font-semibold" style={{ color: '#474747' }} htmlFor="email">
                   E-mail
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                    <Mail className="w-4 h-4 text-gray-400" />
+                    <Mail className="w-4 h-4" style={{ color: '#B2B2B2' }} />
                   </div>
                   <input
                     id="email"
@@ -149,19 +169,28 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="seu@email.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#165c7d] focus:border-transparent transition-all"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border text-sm placeholder-gray-400 transition-all outline-none"
+                    style={{ borderColor: '#E0E0E0', background: '#FFFFFF', color: '#1A1A1A' }}
+                    onFocus={e => {
+                      e.target.style.borderColor = '#165C7D';
+                      e.target.style.boxShadow = '0 0 0 3px #E1EBF0';
+                    }}
+                    onBlur={e => {
+                      e.target.style.borderColor = '#E0E0E0';
+                      e.target.style.boxShadow = 'none';
+                    }}
                   />
                 </div>
               </div>
 
-              {/* Campo Senha */}
+              {/* Senha */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700" htmlFor="password">
+                <label className="text-sm font-semibold" style={{ color: '#474747' }} htmlFor="password">
                   Senha
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                    <Lock className="w-4 h-4 text-gray-400" />
+                    <Lock className="w-4 h-4" style={{ color: '#B2B2B2' }} />
                   </div>
                   <input
                     id="password"
@@ -170,12 +199,22 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#165c7d] focus:border-transparent transition-all"
+                    className="w-full pl-10 pr-12 py-3 rounded-xl border text-sm placeholder-gray-400 transition-all outline-none"
+                    style={{ borderColor: '#E0E0E0', background: '#FFFFFF', color: '#1A1A1A' }}
+                    onFocus={e => {
+                      e.target.style.borderColor = '#165C7D';
+                      e.target.style.boxShadow = '0 0 0 3px #E1EBF0';
+                    }}
+                    onBlur={e => {
+                      e.target.style.borderColor = '#E0E0E0';
+                      e.target.style.boxShadow = 'none';
+                    }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 transition-colors"
+                    style={{ color: '#B2B2B2' }}
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -183,9 +222,9 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Lembrar-me e Esqueci a senha */}
+              {/* Lembrar / Esqueci */}
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer group">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <div className="relative">
                     <input
                       type="checkbox"
@@ -194,9 +233,11 @@ export default function Login() {
                       className="sr-only"
                     />
                     <div
-                      className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                        rememberMe ? 'bg-[#165c7d] border-blue-600' : 'border-gray-300 bg-white'
-                      }`}
+                      className="w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
+                      style={{
+                        background: rememberMe ? '#165C7D' : '#FFFFFF',
+                        borderColor: rememberMe ? '#165C7D' : '#D1D1D1',
+                      }}
                     >
                       {rememberMe && (
                         <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 8" fill="none">
@@ -205,32 +246,52 @@ export default function Login() {
                       )}
                     </div>
                   </div>
-                  <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
-                    Lembrar de mim
-                  </span>
+                  <span className="text-sm" style={{ color: '#6A6A6A' }}>Lembrar de mim</span>
                 </label>
-                <a href="#" className="text-sm text-[#165c7d] hover:text-[#0f4460] font-medium transition-colors">
+                <a
+                  href="#"
+                  className="text-sm font-medium transition-colors"
+                  style={{ color: '#165C7D' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#124A65')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#165C7D')}
+                >
                   Esqueci a senha
                 </a>
               </div>
 
-              {/* Mensagem de erro */}
+              {/* Erro */}
               {error && (
-                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600">{error}</p>
+                <div
+                  className="flex items-start gap-2.5 rounded-xl px-4 py-3 border"
+                  style={{ background: '#FFEEF0', borderColor: '#FFDDE0' }}
+                >
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#E63946' }} />
+                  <p className="text-sm" style={{ color: '#CC2E39' }}>{error}</p>
                 </div>
               )}
 
-              {/* Botão de Entrar */}
+              {/* Botão Entrar */}
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 ${
-                  loading
-                    ? 'bg-[#5b9ab5] cursor-not-allowed'
-                    : 'bg-[#165c7d] hover:bg-[#0f4460] active:scale-[0.98] shadow-sm hover:shadow-md'
-                }`}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200"
+                style={{
+                  background: loading ? '#5F92A9' : '#165C7D',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  boxShadow: loading ? 'none' : '0 4px 14px -3px rgba(22,92,125,0.45)',
+                }}
+                onMouseEnter={e => {
+                  if (!loading) {
+                    (e.currentTarget as HTMLElement).style.background = '#124A65';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!loading) {
+                    (e.currentTarget as HTMLElement).style.background = '#165C7D';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                  }
+                }}
               >
                 {loading ? (
                   <>
@@ -252,28 +313,37 @@ export default function Login() {
             {/* Divisor */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+                <div className="w-full border-t" style={{ borderColor: '#E0E0E0' }} />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="px-3 bg-gray-50 text-gray-400">ou</span>
+                <span className="px-3 text-gray-400 bg-[#FAFAFA]">ou</span>
               </div>
             </div>
 
-            {/* Solicitar Acesso */}
+            {/* Solicitar acesso */}
             <div className="text-center">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm" style={{ color: '#6A6A6A' }}>
                 Não tem uma conta?{' '}
-                <a href="#" className="text-[#165c7d] hover:text-[#0f4460] font-semibold transition-colors">
+                <a
+                  href="#"
+                  className="font-semibold transition-colors"
+                  style={{ color: '#165C7D' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#124A65')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#165C7D')}
+                >
                   Solicitar acesso
                 </a>
               </p>
             </div>
 
-            {/* Dica de credenciais para demo */}
-            <div className="bg-[#eef7fb] border border-[#c2dfec] rounded-xl px-4 py-3">
-              <p className="text-xs text-[#165c7d] font-medium mb-1">🔑 Credenciais de demonstração</p>
-              <p className="text-xs text-[#165c7d]">E-mail: <span className="font-mono">admin@gestao.com</span></p>
-              <p className="text-xs text-[#165c7d]">Senha: <span className="font-mono">123456</span></p>
+            {/* Credenciais demo */}
+            <div
+              className="rounded-xl px-4 py-3 border"
+              style={{ background: '#F0F5F7', borderColor: '#D2E2E8' }}
+            >
+              <p className="text-xs font-medium mb-1" style={{ color: '#124A65' }}>🔑 Credenciais de demonstração</p>
+              <p className="text-xs" style={{ color: '#165C7D' }}>E-mail: <span className="font-mono">admin@gestao.com</span></p>
+              <p className="text-xs" style={{ color: '#165C7D' }}>Senha: <span className="font-mono">123456</span></p>
             </div>
           </div>
         </div>

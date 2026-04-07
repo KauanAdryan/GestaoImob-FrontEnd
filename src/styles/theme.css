@@ -2,46 +2,52 @@
 
 :root {
   --font-size: 16px;
-  
-  /* Ailos Color System - Light Mode */
+
+  /* ============================================================
+   * Ailos Light — Design System
+   * Princípio: Clean & Light — fundos claros, cor como destaque
+   * Primária: Azul Profundo #165C7D
+   * ============================================================ */
+
+  /* App background: quase branco (cinza-25) */
   --background: #FAFAFA;
   --foreground: #1A1A1A;
   --card: #FFFFFF;
   --card-foreground: #1A1A1A;
   --popover: #FFFFFF;
   --popover-foreground: #1A1A1A;
-  
-  /* Azul Profundo - Primária Ailos */
+
+  /* Azul Profundo — Primária (CTAs, links, ações) */
   --primary: #165C7D;
   --primary-foreground: #FFFFFF;
-  
-  /* Secondary (Azul mais claro) */
+
+  /* Secondary (azul claro — botão outline) */
   --secondary: #F0F5F7;
   --secondary-foreground: #165C7D;
-  
-  /* Muted (Cinza neutro) */
+
+  /* Muted (cinza neutro) */
   --muted: #EFEFEF;
   --muted-foreground: #6A6A6A;
-  
-  /* Accent (Azul claro hover) */
-  --accent: #E1EBF0;
-  --accent-foreground: #165C7D;
-  
-  /* Destructive (Vermelho erro) */
+
+  /* Accent (azul-50 — hover states) */
+  --accent: #F0F5F7;
+  --accent-foreground: #124A65;
+
+  /* Destructive */
   --destructive: #E63946;
   --destructive-foreground: #FFFFFF;
-  
+
   /* Border e Input */
   --border: #E0E0E0;
   --input: transparent;
   --input-background: #FFFFFF;
   --switch-background: #B2B2B2;
-  
-  /* Ring (Focus) */
+
+  /* Ring (focus — azul primário) */
   --ring: #165C7D;
-  
-  /* Ailos Extended Colors */
-  --ailos-azul-50: #F0F5F7;
+
+  /* ── Paleta Ailos Azul ── */
+  --ailos-azul-50:  #F0F5F7;
   --ailos-azul-100: #E1EBF0;
   --ailos-azul-200: #D2E2E8;
   --ailos-azul-300: #A3C5D1;
@@ -49,39 +55,44 @@
   --ailos-azul-500: #165C7D;
   --ailos-azul-600: #124A65;
   --ailos-azul-700: #0E3A4E;
-  
-  --ailos-turquesa-50: #E6F3F4;
+
+  --ailos-turquesa-50:  #E6F3F4;
   --ailos-turquesa-100: #CCE7E9;
   --ailos-turquesa-500: #007D8A;
   --ailos-turquesa-600: #00626E;
-  
-  --ailos-azul-claro-50: #E6F6FA;
+
+  --ailos-azul-claro-50:  #E6F6FA;
   --ailos-azul-claro-100: #CCECF5;
   --ailos-azul-claro-500: #00A9CE;
   --ailos-azul-claro-600: #0087A5;
-  
-  --ailos-verde-50: #E6F7ED;
+
+  /* Verde semântico (SLA OK / sucesso) */
+  --ailos-verde-50:  #E6F7ED;
   --ailos-verde-100: #CCEFDB;
   --ailos-verde-500: #00B140;
   --ailos-verde-600: #009033;
-  
-  --ailos-amarelo-50: #FFF4E6;
+
+  /* Amarelo (SLA próximo / warning) */
+  --ailos-amarelo-50:  #FFF4E6;
   --ailos-amarelo-100: #FFE9CC;
   --ailos-amarelo-500: #FFA300;
   --ailos-amarelo-700: #CC8300;
-  
-  --ailos-laranja-50: #FFF0E6;
+
+  /* Laranja */
+  --ailos-laranja-50:  #FFF0E6;
   --ailos-laranja-100: #FFE0CC;
   --ailos-laranja-500: #FF7A00;
   --ailos-laranja-600: #CC6200;
-  
-  --ailos-vermelho-50: #FFEEF0;
+
+  /* Vermelho (SLA vencido / erro) */
+  --ailos-vermelho-50:  #FFEEF0;
   --ailos-vermelho-100: #FFDDE0;
   --ailos-vermelho-500: #E63946;
   --ailos-vermelho-600: #CC2E39;
-  
-  --ailos-cinza-25: #FAFAFA;
-  --ailos-cinza-50: #F7F7F7;
+
+  /* Cinza neutros */
+  --ailos-cinza-25:  #FAFAFA;
+  --ailos-cinza-50:  #F7F7F7;
   --ailos-cinza-100: #EFEFEF;
   --ailos-cinza-200: #E0E0E0;
   --ailos-cinza-300: #D1D1D1;
@@ -90,32 +101,35 @@
   --ailos-cinza-600: #6A6A6A;
   --ailos-cinza-700: #474747;
   --ailos-cinza-900: #1A1A1A;
-  
+
   /* Charts */
   --chart-1: #165C7D;
   --chart-2: #00A9CE;
   --chart-3: #00B140;
   --chart-4: #FFA300;
   --chart-5: #007D8A;
-  
+
   /* Radius */
   --radius: 0.75rem;
-  
-  /* Sidebar */
-  --sidebar: #E1EBF0;
-  --sidebar-foreground: #1A1A1A;
-  --sidebar-primary: #165C7D;
+
+  /* ── Sidebar — Clara (azul-100, clean & light) ──
+   * Background: azul-100 com gradiente sutil
+   * Nav ativo: fundo branco + borda esq. azul-500
+   * Nav hover: azul-50 background              */
+  --sidebar:                    #E1EBF0;
+  --sidebar-foreground:         #1A1A1A;
+  --sidebar-primary:            #165C7D;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F0F5F7;
-  --sidebar-accent-foreground: #165C7D;
-  --sidebar-border: #D2E2E8;
-  --sidebar-ring: #165C7D;
-  
+  --sidebar-accent:             #F0F5F7;
+  --sidebar-accent-foreground:  #124A65;
+  --sidebar-border:             #D2E2E8;
+  --sidebar-ring:               #165C7D;
+
   /* Typography weights */
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
+  --font-weight-medium:   500;
+  --font-weight-normal:   400;
   --font-weight-semibold: 600;
-  --font-weight-bold: 700;
+  --font-weight-bold:     700;
 }
 
 .dark {
@@ -182,9 +196,9 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  
+
   /* Ailos Colors */
-  --color-ailos-azul-50: var(--ailos-azul-50);
+  --color-ailos-azul-50:  var(--ailos-azul-50);
   --color-ailos-azul-100: var(--ailos-azul-100);
   --color-ailos-azul-200: var(--ailos-azul-200);
   --color-ailos-azul-300: var(--ailos-azul-300);
@@ -192,39 +206,39 @@
   --color-ailos-azul-500: var(--ailos-azul-500);
   --color-ailos-azul-600: var(--ailos-azul-600);
   --color-ailos-azul-700: var(--ailos-azul-700);
-  
-  --color-ailos-turquesa-50: var(--ailos-turquesa-50);
+
+  --color-ailos-turquesa-50:  var(--ailos-turquesa-50);
   --color-ailos-turquesa-100: var(--ailos-turquesa-100);
   --color-ailos-turquesa-500: var(--ailos-turquesa-500);
   --color-ailos-turquesa-600: var(--ailos-turquesa-600);
-  
-  --color-ailos-azul-claro-50: var(--ailos-azul-claro-50);
+
+  --color-ailos-azul-claro-50:  var(--ailos-azul-claro-50);
   --color-ailos-azul-claro-100: var(--ailos-azul-claro-100);
   --color-ailos-azul-claro-500: var(--ailos-azul-claro-500);
   --color-ailos-azul-claro-600: var(--ailos-azul-claro-600);
-  
-  --color-ailos-verde-50: var(--ailos-verde-50);
+
+  --color-ailos-verde-50:  var(--ailos-verde-50);
   --color-ailos-verde-100: var(--ailos-verde-100);
   --color-ailos-verde-500: var(--ailos-verde-500);
   --color-ailos-verde-600: var(--ailos-verde-600);
-  
-  --color-ailos-amarelo-50: var(--ailos-amarelo-50);
+
+  --color-ailos-amarelo-50:  var(--ailos-amarelo-50);
   --color-ailos-amarelo-100: var(--ailos-amarelo-100);
   --color-ailos-amarelo-500: var(--ailos-amarelo-500);
   --color-ailos-amarelo-700: var(--ailos-amarelo-700);
-  
-  --color-ailos-laranja-50: var(--ailos-laranja-50);
+
+  --color-ailos-laranja-50:  var(--ailos-laranja-50);
   --color-ailos-laranja-100: var(--ailos-laranja-100);
   --color-ailos-laranja-500: var(--ailos-laranja-500);
   --color-ailos-laranja-600: var(--ailos-laranja-600);
-  
-  --color-ailos-vermelho-50: var(--ailos-vermelho-50);
+
+  --color-ailos-vermelho-50:  var(--ailos-vermelho-50);
   --color-ailos-vermelho-100: var(--ailos-vermelho-100);
   --color-ailos-vermelho-500: var(--ailos-vermelho-500);
   --color-ailos-vermelho-600: var(--ailos-vermelho-600);
-  
-  --color-ailos-cinza-25: var(--ailos-cinza-25);
-  --color-ailos-cinza-50: var(--ailos-cinza-50);
+
+  --color-ailos-cinza-25:  var(--ailos-cinza-25);
+  --color-ailos-cinza-50:  var(--ailos-cinza-50);
   --color-ailos-cinza-100: var(--ailos-cinza-100);
   --color-ailos-cinza-200: var(--ailos-cinza-200);
   --color-ailos-cinza-300: var(--ailos-cinza-300);
@@ -233,22 +247,22 @@
   --color-ailos-cinza-600: var(--ailos-cinza-600);
   --color-ailos-cinza-700: var(--ailos-cinza-700);
   --color-ailos-cinza-900: var(--ailos-cinza-900);
-  
+
   /* Radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  
+
   /* Sidebar */
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar:                    var(--sidebar);
+  --color-sidebar-foreground:         var(--sidebar-foreground);
+  --color-sidebar-primary:            var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-accent:             var(--sidebar-accent);
+  --color-sidebar-accent-foreground:  var(--sidebar-accent-foreground);
+  --color-sidebar-border:             var(--sidebar-border);
+  --color-sidebar-ring:               var(--sidebar-ring);
 }
 
 @layer base {
@@ -259,11 +273,6 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
 
   html {
     font-size: var(--font-size);

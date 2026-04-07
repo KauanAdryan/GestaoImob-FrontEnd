@@ -42,14 +42,14 @@ const styles = `
   }
   .stat-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 28px -8px rgba(22, 92, 125, 0.18);
+    box-shadow: 0 12px 28px -8px rgba(0, 154, 68, 0.18);
   }
 
   .table-row-animate {
     transition: background 0.15s ease, transform 0.15s ease;
   }
   .table-row-animate:hover {
-    background: #f0f8fc !important;
+    background: #eef7fb !important;
     transform: translateX(2px);
   }
 
@@ -64,7 +64,7 @@ const styles = `
     transition: box-shadow 0.2s ease;
   }
   .filter-card:focus-within {
-    box-shadow: 0 0 0 3px rgba(22, 92, 125, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 154, 68, 0.1);
   }
 
   .btn-primary {
@@ -72,7 +72,7 @@ const styles = `
   }
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px -4px rgba(22, 92, 125, 0.4);
+    box-shadow: 0 6px 16px -4px rgba(0, 154, 68, 0.4);
   }
   .btn-primary:active {
     transform: translateY(0);
@@ -126,7 +126,7 @@ export default function PropertyFlowList() {
       label: 'Total de Imóveis',
       value: properties.length,
       icon: Building2,
-      color: '#165c7d',
+      color: '#165C7D',
       bg: '#eef7fb',
       delay: '0ms',
     },
@@ -159,7 +159,7 @@ export default function PropertyFlowList() {
   return (
     <>
       <style>{styles}</style>
-      <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #f8fbfd 0%, #f0f7fb 100%)' }}>
+      <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #f8fbfd 0%, #eef7fb 100%)' }}>
         <div className="max-w-[1400px] mx-auto space-y-6">
 
           {/* Header */}
@@ -173,7 +173,7 @@ export default function PropertyFlowList() {
               </h1>
               <p className="mt-1 text-sm" style={{ color: '#4a7a8e' }}>
                 Fluxo de imóveis a partir do Leilão •{' '}
-                <span className="font-semibold" style={{ color: '#165c7d' }}>
+                <span className="font-semibold" style={{ color: '#165C7D' }}>
                   {filteredProperties.length} {filteredProperties.length === 1 ? 'imóvel' : 'imóveis'}
                 </span>
               </p>
@@ -190,7 +190,7 @@ export default function PropertyFlowList() {
               </Link>
               <Button
                 className="btn-primary text-white font-semibold px-5 rounded-xl"
-                style={{ background: '#165c7d', border: 'none' }}
+                style={{ background: '#165C7D', border: 'none' }}
                 onClick={() => setShowQuickUpdateModal(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -226,7 +226,7 @@ export default function PropertyFlowList() {
                 >
                   {stat.value}
                 </p>
-                <p className="text-sm mt-1" style={{ color: '#6b8fa0' }}>{stat.label}</p>
+                <p className="text-sm mt-1" style={{ color: '#4a7a8e' }}>{stat.label}</p>
               </div>
             ))}
           </div>
@@ -249,11 +249,11 @@ export default function PropertyFlowList() {
                     placeholder="Buscar por código ou endereço..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 rounded-xl border-gray-200 focus-visible:border-[#165c7d] focus-visible:ring-[#165c7d]/20"
+                    className="pl-10 rounded-xl border-gray-200 focus-visible:border-[#165C7D] focus-visible:ring-[#165C7D]/20"
                   />
                 </div>
                 <Select value={filterEtapa} onValueChange={setFilterEtapa}>
-                  <SelectTrigger className="rounded-xl border-gray-200 focus:border-[#165c7d]">
+                  <SelectTrigger className="rounded-xl border-gray-200 focus:border-[#165C7D]">
                     <SelectValue placeholder="Todas as Etapas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -264,7 +264,7 @@ export default function PropertyFlowList() {
                   </SelectContent>
                 </Select>
                 <Select value={filterSLA} onValueChange={setFilterSLA}>
-                  <SelectTrigger className="rounded-xl border-gray-200 focus:border-[#165c7d]">
+                  <SelectTrigger className="rounded-xl border-gray-200 focus:border-[#165C7D]">
                     <SelectValue placeholder="Todos os SLAs" />
                   </SelectTrigger>
                   <SelectContent>
@@ -320,7 +320,7 @@ export default function PropertyFlowList() {
           >
             <Table>
               <TableHeader>
-                <TableRow style={{ background: 'linear-gradient(90deg, #f0f7fb, #f8fbfd)', borderBottom: '2px solid #e8f2f7' }}>
+                <TableRow style={{ background: '#F7F7F7', borderBottom: '1px solid #E0E0E0' }}>
                   {['Imóvel', 'Etapa Atual', 'SLA', 'Responsável', 'Alertas', 'Última Atualização', ''].map(h => (
                     <TableHead key={h} className="font-semibold text-xs uppercase tracking-wider" style={{ color: '#4a7a8e' }}>
                       {h}
@@ -334,7 +334,7 @@ export default function PropertyFlowList() {
                     key={property.id}
                     className="table-row-animate"
                     style={{
-                      borderBottom: '1px solid #f0f7fb',
+                      borderBottom: '1px solid #eef7fb',
                       animation: `fadeInUp 0.35s ease both`,
                       animationDelay: `${i * 40}ms`,
                     }}
@@ -350,7 +350,7 @@ export default function PropertyFlowList() {
                         </div>
                         <div>
                           <p className="font-semibold text-sm" style={{ color: '#0f3d52' }}>{property.codigo}</p>
-                          <p className="text-xs mt-0.5" style={{ color: '#6b8fa0' }}>{property.endereco}</p>
+                          <p className="text-xs mt-0.5" style={{ color: '#4a7a8e' }}>{property.endereco}</p>
                           <p className="text-xs" style={{ color: '#8baebb' }}>{property.cidade}, {property.estado}</p>
                         </div>
                       </div>
@@ -358,7 +358,7 @@ export default function PropertyFlowList() {
                     <TableCell>
                       <span
                         className="inline-block px-3 py-1 rounded-full text-xs font-semibold"
-                        style={{ background: '#eef7fb', color: '#165c7d' }}
+                        style={{ background: '#eef7fb', color: '#165C7D' }}
                       >
                         {getEtapaLabel(property.etapaAtual)}
                       </span>
@@ -378,7 +378,7 @@ export default function PropertyFlowList() {
                       <div className="flex items-center gap-2">
                         <div
                           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                          style={{ background: '#165c7d' }}
+                          style={{ background: '#165C7D' }}
                         >
                           {property.responsavel.charAt(0)}
                         </div>
@@ -392,7 +392,7 @@ export default function PropertyFlowList() {
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm" style={{ color: '#6b8fa0' }}>
+                    <TableCell className="text-sm" style={{ color: '#4a7a8e' }}>
                       {format(property.ultimaAtualizacao, 'dd/MM/yyyy', { locale: ptBR })}
                     </TableCell>
                     <TableCell>
@@ -409,7 +409,7 @@ export default function PropertyFlowList() {
                             style={{ color: '#8baebb', background: 'transparent' }}
                             onMouseEnter={e => {
                               (e.currentTarget as HTMLElement).style.background = '#eef7fb';
-                              (e.currentTarget as HTMLElement).style.color = '#165c7d';
+                              (e.currentTarget as HTMLElement).style.color = '#165C7D';
                             }}
                             onMouseLeave={e => {
                               (e.currentTarget as HTMLElement).style.background = 'transparent';
@@ -422,7 +422,7 @@ export default function PropertyFlowList() {
                         <Link to={`/gestao-bens/${property.id}`}>
                           <button
                             className="btn-primary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white ml-1"
-                            style={{ background: '#165c7d' }}
+                            style={{ background: '#165C7D' }}
                           >
                             <Eye className="h-3.5 w-3.5" />
                             Abrir
@@ -455,10 +455,10 @@ export default function PropertyFlowList() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm" style={{ color: '#0f3d52' }}>{property.codigo}</p>
-                    <p className="text-xs mt-0.5 truncate" style={{ color: '#6b8fa0' }}>{property.endereco}</p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: '#4a7a8e' }}>{property.endereco}</p>
                     <p className="text-xs" style={{ color: '#8baebb' }}>{property.cidade}, {property.estado}</p>
                     <div className="flex gap-2 mt-2">
-                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: '#eef7fb', color: '#165c7d' }}>
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: '#eef7fb', color: '#165C7D' }}>
                         {getEtapaLabel(property.etapaAtual)}
                       </span>
                       <SLABadge status={property.slaStatus} data={property.slaData} showIcon={false} showDays={false} />
@@ -470,12 +470,12 @@ export default function PropertyFlowList() {
                     {property.tags.map((tag, index) => <PropertyTagBadge key={index} tag={tag} />)}
                   </div>
                 )}
-                <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid #f0f7fb' }}>
+                <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid #eef7fb' }}>
                   <span className="text-xs" style={{ color: '#8baebb' }}>
                     {format(property.ultimaAtualizacao, 'dd/MM/yyyy', { locale: ptBR })}
                   </span>
                   <Link to={`/gestao-bens/${property.id}`}>
-                    <button className="btn-primary flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold text-white" style={{ background: '#165c7d' }}>
+                    <button className="btn-primary flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold text-white" style={{ background: '#165C7D' }}>
                       <Eye className="h-3.5 w-3.5" /> Ver Detalhes
                     </button>
                   </Link>
