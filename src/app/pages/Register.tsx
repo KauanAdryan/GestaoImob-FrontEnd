@@ -1,41 +1,64 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { authService } from '../../services/auth';
 
-export default function Login() {
+export default function Register() {
+  const [dsNome, setNome] = useState('');
   const [dsEmail, setEmail] = useState('');
   const [dsSenha, setPassword] = useState('');
+  const [dsConfirmaSenha, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!dsEmail || !dsSenha) {
+    if (!dsNome || !dsEmail || !dsSenha || !dsConfirmaSenha) {
       setError('Preencha todos os campos.');
+      return;
+    }
+
+    if (dsSenha !== dsConfirmaSenha) {
+      setError('As senhas não coincidem.');
+      return;
+    }
+
+    if (dsSenha.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
 
     setLoading(true);
     try {
-      await authService.login(dsEmail, dsSenha);
-      navigate('/gestao-bens');
+      await authService.register(dsNome, dsEmail, dsSenha);
+      setSuccess(true);
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'E-mail ou senha incorretos. Tente novamente.');
+      setError(err instanceof Error ? err.message : 'Erro ao criar conta. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
+  const inputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.style.borderColor = '#165C7D';
+    e.target.style.boxShadow = '0 0 0 3px #E1EBF0';
+  };
+  const inputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.style.borderColor = '#E0E0E0';
+    e.target.style.boxShadow = 'none';
+  };
+
   return (
     <div className="min-h-screen flex" style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
 
-      {/* Painel Esquerdo — Visual Ailos */}
+      {/* Painel Esquerdo — Visual */}
       <div
         className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden"
         style={{
@@ -86,8 +109,8 @@ export default function Login() {
 
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-white leading-tight">
-              Gestão de imóveis<br />
-              <span style={{ color: '#a8d4e6' }}>simplificada.</span>
+              Crie sua conta<br />
+              <span style={{ color: '#a8d4e6' }}>e comece agora.</span>
             </h1>
             <p className="text-lg leading-relaxed max-w-xs" style={{ color: '#cce8f4' }}>
               Controle imóveis, contratos, inquilinos e financeiro em um só lugar.
@@ -123,7 +146,7 @@ export default function Login() {
       <div className="w-full lg:w-1/2 flex flex-col bg-[#FAFAFA]">
         {/* Header mobile */}
         <div className="lg:hidden flex items-center gap-2 px-6 py-5 bg-white border-b border-gray-100">
-          <span className="font-bold text-gray-900" style={{ color: '#165c7d' }}>Gestão de Bens</span>
+          <span className="font-bold" style={{ color: '#165c7d' }}>Gestão de Bens</span>
         </div>
 
         {/* Formulário centrado */}
@@ -133,15 +156,39 @@ export default function Login() {
             {/* Cabeçalho */}
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tight" style={{ color: '#1A1A1A' }}>
-                Bem-vindo de volta
+                Criar conta
               </h2>
               <p className="text-base" style={{ color: '#6A6A6A' }}>
-                Entre com suas credenciais para continuar.
+                Preencha os dados abaixo para se cadastrar.
               </p>
             </div>
 
             {/* Formulário */}
             <form onSubmit={handleSubmit} className="space-y-5">
+
+              {/* Nome */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold" style={{ color: '#474747' }} htmlFor="nome">
+                  Nome completo
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+                    <User className="w-4 h-4" style={{ color: '#B2B2B2' }} />
+                  </div>
+                  <input
+                    id="nome"
+                    type="text"
+                    autoComplete="name"
+                    value={dsNome}
+                    onChange={(e) => setNome(e.target.value)}
+                    placeholder="Seu nome completo"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border text-sm placeholder-gray-400 transition-all outline-none"
+                    style={{ borderColor: '#E0E0E0', background: '#FFFFFF', color: '#1A1A1A' }}
+                    onFocus={inputFocus}
+                    onBlur={inputBlur}
+                  />
+                </div>
+              </div>
 
               {/* E-mail */}
               <div className="space-y-2">
@@ -161,14 +208,8 @@ export default function Login() {
                     placeholder="seu@email.com"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border text-sm placeholder-gray-400 transition-all outline-none"
                     style={{ borderColor: '#E0E0E0', background: '#FFFFFF', color: '#1A1A1A' }}
-                    onFocus={e => {
-                      e.target.style.borderColor = '#165C7D';
-                      e.target.style.boxShadow = '0 0 0 3px #E1EBF0';
-                    }}
-                    onBlur={e => {
-                      e.target.style.borderColor = '#E0E0E0';
-                      e.target.style.boxShadow = 'none';
-                    }}
+                    onFocus={inputFocus}
+                    onBlur={inputBlur}
                   />
                 </div>
               </div>
@@ -185,20 +226,14 @@ export default function Login() {
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     value={dsSenha}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Mínimo 6 caracteres"
                     className="w-full pl-10 pr-12 py-3 rounded-xl border text-sm placeholder-gray-400 transition-all outline-none"
                     style={{ borderColor: '#E0E0E0', background: '#FFFFFF', color: '#1A1A1A' }}
-                    onFocus={e => {
-                      e.target.style.borderColor = '#165C7D';
-                      e.target.style.boxShadow = '0 0 0 3px #E1EBF0';
-                    }}
-                    onBlur={e => {
-                      e.target.style.borderColor = '#E0E0E0';
-                      e.target.style.boxShadow = 'none';
-                    }}
+                    onFocus={inputFocus}
+                    onBlur={inputBlur}
                   />
                   <button
                     type="button"
@@ -212,41 +247,37 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Lembrar / Esqueci */}
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      className="w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
-                      style={{
-                        background: rememberMe ? '#165C7D' : '#FFFFFF',
-                        borderColor: rememberMe ? '#165C7D' : '#D1D1D1',
-                      }}
-                    >
-                      {rememberMe && (
-                        <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 8" fill="none">
-                          <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-sm" style={{ color: '#6A6A6A' }}>Lembrar de mim</span>
+              {/* Confirmar Senha */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold" style={{ color: '#474747' }} htmlFor="confirm-password">
+                  Confirmar senha
                 </label>
-                <a
-                  href="#"
-                  className="text-sm font-medium transition-colors"
-                  style={{ color: '#165C7D' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#124A65')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#165C7D')}
-                >
-                  Esqueci a senha
-                </a>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+                    <Lock className="w-4 h-4" style={{ color: '#B2B2B2' }} />
+                  </div>
+                  <input
+                    id="confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={dsConfirmaSenha}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repita a senha"
+                    className="w-full pl-10 pr-12 py-3 rounded-xl border text-sm placeholder-gray-400 transition-all outline-none"
+                    style={{ borderColor: '#E0E0E0', background: '#FFFFFF', color: '#1A1A1A' }}
+                    onFocus={inputFocus}
+                    onBlur={inputBlur}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 transition-colors"
+                    style={{ color: '#B2B2B2' }}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Erro */}
@@ -260,24 +291,35 @@ export default function Login() {
                 </div>
               )}
 
-              {/* Botão Entrar */}
+              {/* Sucesso */}
+              {success && (
+                <div
+                  className="flex items-start gap-2.5 rounded-xl px-4 py-3 border"
+                  style={{ background: '#EDFAF4', borderColor: '#C3EDD8' }}
+                >
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#1A7F4B' }} />
+                  <p className="text-sm" style={{ color: '#1A7F4B' }}>Conta criada com sucesso! Redirecionando...</p>
+                </div>
+              )}
+
+              {/* Botão Criar conta */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || success}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200"
                 style={{
-                  background: loading ? '#5F92A9' : '#165C7D',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  boxShadow: loading ? 'none' : '0 4px 14px -3px rgba(22,92,125,0.45)',
+                  background: loading || success ? '#5F92A9' : '#165C7D',
+                  cursor: loading || success ? 'not-allowed' : 'pointer',
+                  boxShadow: loading || success ? 'none' : '0 4px 14px -3px rgba(22,92,125,0.45)',
                 }}
                 onMouseEnter={e => {
-                  if (!loading) {
+                  if (!loading && !success) {
                     (e.currentTarget as HTMLElement).style.background = '#124A65';
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
                   }
                 }}
                 onMouseLeave={e => {
-                  if (!loading) {
+                  if (!loading && !success) {
                     (e.currentTarget as HTMLElement).style.background = '#165C7D';
                     (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
                   }
@@ -289,11 +331,11 @@ export default function Login() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Entrando...
+                    Criando conta...
                   </>
                 ) : (
                   <>
-                    Entrar
+                    Criar conta
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -310,18 +352,18 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Solicitar acesso */}
+            {/* Voltar para login */}
             <div className="text-center">
               <p className="text-sm" style={{ color: '#6A6A6A' }}>
-                Não tem uma conta?{' '}
+                Já tem uma conta?{' '}
                 <a
-                  href="/cadastro"
+                  href="/login"
                   className="font-semibold transition-colors"
                   style={{ color: '#165C7D' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#124A65')}
                   onMouseLeave={e => (e.currentTarget.style.color = '#165C7D')}
                 >
-                  Criar conta
+                  Entrar
                 </a>
               </p>
             </div>

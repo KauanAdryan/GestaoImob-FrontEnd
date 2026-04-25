@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts';
 
-// ── KPI Card conforme design system Ailos Light / Viacredi ──────────────────
+// ── KPI Card conforme design system Light / ──────────────────
 // Variantes: default | success | alert | danger | info
 type KpiVariant = 'default' | 'success' | 'alert' | 'danger' | 'info';
 

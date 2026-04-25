@@ -9,12 +9,19 @@ import VendaPage from './pages/property-flow/VendaPage';
 import PosVendaPage from './pages/property-flow/PosVendaPage';
 import CadastroImovelPage from './pages/property-flow/CadastroImovelPage';
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 export const router = createBrowserRouter([
   // Rota de login — sem layout/sidebar
   {
     path: '/login',
     Component: Login,
+  },
+
+  // Rota de cadastro — sem layout/sidebar
+  {
+    path: '/cadastro',
+    Component: Register,
   },
 
   // Redireciona a raiz para /login
