@@ -1,4 +1,5 @@
-import { mockProperties } from '../../data/property-flow-updated';
+import { useState, useEffect } from 'react';
+import { imovelService, enderecoLabel, type ImovelAPI } from '../../../services/imovelService';
 import { Link, useParams } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -12,7 +13,8 @@ import { ChecklistItem } from '../../types/property-flow';
 
 export default function VendaPage() {
   const { id } = useParams();
-  const property = mockProperties.find(p => p.id === id);
+  const [imovel, setImovel] = useState<ImovelAPI | null>(null);
+  useEffect(() => { if (id) imovelService.getById(id).then(setImovel).catch(console.error); }, [id]);
   
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     {
@@ -95,8 +97,8 @@ export default function VendaPage() {
             Voltar para Detalhes
           </Button>
         </Link>
-        <h1 className="text-2xl font-semibold text-gray-900">Venda - {property.codigo}</h1>
-        <p className="text-sm text-gray-600 mt-1">{property.endereco}</p>
+        <h1 className="text-2xl font-semibold" style={{ color: 'var(--foreground)' }}>Venda — {imovel?.tipoImovel ?? ''}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>{imovel ? enderecoLabel(imovel) : ''}</p>
       </div>
 
       {/* Dados da Venda */}

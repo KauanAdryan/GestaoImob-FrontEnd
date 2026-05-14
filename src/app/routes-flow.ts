@@ -10,6 +10,8 @@ import PosVendaPage from './pages/property-flow/PosVendaPage';
 import CadastroImovelPage from './pages/property-flow/CadastroImovelPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Root from './pages/Root';
+import Dashboard from './pages/Dashboard';
 
 export const router = createBrowserRouter([
   // Rota de login — sem layout/sidebar
@@ -32,17 +34,23 @@ export const router = createBrowserRouter([
 
   // Rotas protegidas do sistema
   {
-    path: '/gestao-bens',
+    Component: Root,
     children: [
-      { index: true, Component: PropertyFlowList },
-      { path: 'novo', Component: CadastroImovelPage },
-      { path: ':id', Component: PropertyFlowDetail },
-      { path: ':id/leilao', Component: LeilaoPage },
-      { path: ':id/negociacao', Component: NegociacaoPage },
-      { path: ':id/manutencao-precificacao', Component: ManutencaoPrecificacaoPage },
-      { path: ':id/comercial', Component: ComercialPage },
-      { path: ':id/venda', Component: VendaPage },
-      { path: ':id/pos-venda', Component: PosVendaPage },
+      { path: '/dashboard', Component: Dashboard },
+      {
+        path: '/gestao-bens',
+        children: [
+          { index: true, Component: PropertyFlowList },
+          { path: 'novo', Component: CadastroImovelPage },
+          { path: ':id', Component: PropertyFlowDetail },
+          { path: ':id/leilao', Component: LeilaoPage },
+          { path: ':id/negociacao', Component: NegociacaoPage },
+          { path: ':id/manutencao-precificacao', Component: ManutencaoPrecificacaoPage },
+          { path: ':id/comercial', Component: ComercialPage },
+          { path: ':id/venda', Component: VendaPage },
+          { path: ':id/pos-venda', Component: PosVendaPage },
+        ],
+      },
     ],
   },
 ]);

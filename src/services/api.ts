@@ -32,16 +32,24 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (!response.ok) {
     let message = `Erro ${response.status}`;
     try {
-      const body = await response.json();
-      message = body.message ?? body.error ?? message;
-    } catch {
-    }
+      const text = await response.text();
+      if (text) console.error(`API ${response.status} body:`, text);
+      try {
+        const body = JSON.parse(text);
+        message = body.message ?? body.error ?? body.detail ?? body.title ?? message;
+      } catch {
+        if (text) message = text.slice(0, 300);
+      }
+    } catch { /* ignore */ }
+    console.error('API error:', response.status, message);
     throw new Error(message);
   }
 
   if (response.status === 204) return undefined as T;
 
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export const api = {

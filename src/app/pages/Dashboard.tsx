@@ -1,280 +1,146 @@
-import { Building2, Home, TrendingUp, AlertCircle } from 'lucide-react';
-import { mockProperties, mockContracts, mockPayments } from '../data/mockData';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell,
-} from 'recharts';
+import { useEffect, useState } from 'react';
+import { Building2, TrendingUp, DollarSign, Layers } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTheme } from '../../contexts/ThemeContext';
+import { imovelService, type ImovelAPI } from '../../services/imovelService';
 
-// ── KPI Card conforme design system Light / ──────────────────
-// Variantes: default | success | alert | danger | info
-type KpiVariant = 'default' | 'success' | 'alert' | 'danger' | 'info';
+type KpiVariant = 'default' | 'success' | 'info' | 'alert';
 
-const kpiStyles: Record<KpiVariant, { bg: string; border: string; iconColor: string; valueColor: string }> = {
-  default: {
-    bg:         '#FFFFFF',
-    border:     '#EFEFEF',
-    iconColor:  '#8E8E8E',
-    valueColor: '#1A1A1A',
-  },
-  success: {
-    bg:         'linear-gradient(135deg, #E6F7ED 0%, #FFFFFF 100%)',
-    border:     '#CCEFDB',
-    iconColor:  '#00B140',
-    valueColor: '#006829',
-  },
-  alert: {
-    bg:         'linear-gradient(135deg, #FFF4E6 0%, #FFFFFF 100%)',
-    border:     '#FFE9CC',
-    iconColor:  '#FFA300',
-    valueColor: '#CC8300',
-  },
-  danger: {
-    bg:         'linear-gradient(135deg, #FFEEF0 0%, #FFFFFF 100%)',
-    border:     '#FFDDE0',
-    iconColor:  '#E63946',
-    valueColor: '#B30000',
-  },
-  info: {
-    bg:         'linear-gradient(135deg, #E6F6FA 0%, #FFFFFF 100%)',
-    border:     '#CCECF5',
-    iconColor:  '#00A9CE',
-    valueColor: '#00687D',
-  },
-};
+function kpiStyles(isDark: boolean): Record<KpiVariant, { bg: string; border: string; iconColor: string; valueColor: string }> {
+  return {
+    default: { bg: 'var(--card)',              border: 'var(--border)',              iconColor: 'var(--ailos-cinza-500)',  valueColor: 'var(--foreground)' },
+    success: { bg: isDark ? 'linear-gradient(135deg, #0D2B18 0%, var(--card) 100%)' : 'linear-gradient(135deg, #E6F7ED 0%, #FFFFFF 100%)', border: isDark ? '#1A4A2E' : '#CCEFDB', iconColor: '#00B140', valueColor: isDark ? '#4ADE80' : '#006829' },
+    info:    { bg: isDark ? 'linear-gradient(135deg, #0A1F2E 0%, var(--card) 100%)' : 'linear-gradient(135deg, #E6F6FA 0%, #FFFFFF 100%)', border: isDark ? '#163344' : '#CCECF5', iconColor: '#00A9CE', valueColor: isDark ? '#38BDF8' : '#00687D' },
+    alert:   { bg: isDark ? 'linear-gradient(135deg, #2E1F00 0%, var(--card) 100%)' : 'linear-gradient(135deg, #FFF4E6 0%, #FFFFFF 100%)', border: isDark ? '#4A3300' : '#FFE9CC', iconColor: '#FFA300', valueColor: isDark ? '#FFB938' : '#CC8300' },
+  };
+}
 
-function KpiCard({
-  label,
-  value,
-  description,
-  descriptionColor,
-  icon: Icon,
-  variant = 'default',
-}: {
-  label: string;
-  value: string | number;
-  description: string;
-  descriptionColor?: string;
-  icon: React.ElementType;
-  variant?: KpiVariant;
+function KpiCard({ label, value, description, icon: Icon, variant = 'default', isDark }: {
+  label: string; value: string | number; description: string;
+  icon: React.ElementType; variant?: KpiVariant; isDark: boolean;
 }) {
-  const s = kpiStyles[variant];
+  const s = kpiStyles(isDark)[variant];
   return (
-    <div
-      className="rounded-xl p-6 transition-all duration-200"
-      style={{
-        background: s.bg,
-        border: `1px solid ${s.border}`,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-      }}
+    <div className="rounded-xl p-6 transition-all duration-200" style={{ background: s.bg, border: `1px solid ${s.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'; }}
     >
       <div className="flex items-start justify-between mb-3">
-        <p className="text-sm font-medium" style={{ color: '#6A6A6A' }}>{label}</p>
+        <p className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>{label}</p>
         <Icon style={{ width: 20, height: 20, color: s.iconColor, flexShrink: 0 }} />
       </div>
       <p className="text-3xl font-bold" style={{ color: s.valueColor }}>{value}</p>
-      <p className="text-xs mt-1" style={{ color: descriptionColor ?? '#8E8E8E' }}>{description}</p>
+      <p className="text-xs mt-1" style={{ color: 'var(--ailos-cinza-500)' }}>{description}</p>
     </div>
   );
 }
 
-// ── Cores do gráfico de pizza (design system) ───────────────────────────────
-const PIE_COLORS = ['#165C7D', '#00B140', '#FFA300'];
-
 export default function Dashboard() {
-  const totalImoveis      = mockProperties.length;
-  const imoveisAlugados   = mockProperties.filter(p => p.status === 'alugado').length;
-  const imoveisDisponiveis = mockProperties.filter(p => p.status === 'disponivel').length;
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
-  const receitaMensal = mockContracts
-    .filter(c => c.ativo)
-    .reduce((sum, c) => sum + c.valorAluguel, 0);
+  const [imoveis, setImoveis] = useState<ImovelAPI[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const pagamentosAtrasados = mockPayments.filter(p => p.status === 'atrasado').length;
+  useEffect(() => {
+    imovelService.getAll()
+      .then(setImoveis)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-  const receitaMensalData = [
-    { mes: 'Jan', valor: 8500 },
-    { mes: 'Fev', valor: 14500 },
-    { mes: 'Mar', valor: 8500 },
-    { mes: 'Abr', valor: 8500 },
-    { mes: 'Mai', valor: 14500 },
-    { mes: 'Jun', valor: 14500 },
-  ];
+  const total          = imoveis.length;
+  const valorTotal     = imoveis.reduce((s, i) => s + (i.valorAvaliacao ?? 0), 0);
+  const areaTotal      = imoveis.reduce((s, i) => s + (i.area ?? 0), 0);
+  const mediaValor     = total > 0 ? valorTotal / total : 0;
 
-  const statusData = [
-    { name: 'Alugados',    value: imoveisAlugados },
-    { name: 'Disponíveis', value: imoveisDisponiveis },
-    { name: 'Manutenção',  value: mockProperties.filter(p => p.status === 'manutencao').length },
-  ];
+  const tipoData = ['Apartamento', 'Casa', 'Comercial', 'Terreno', 'Galpao', 'Rural'].map(tipo => ({
+    tipo,
+    quantidade: imoveis.filter(i => i.tipoImovel === tipo).length,
+  })).filter(d => d.quantidade > 0);
 
-  const tipoImovelData = [
-    { tipo: 'Apartamento', quantidade: mockProperties.filter(p => p.tipo === 'apartamento').length },
-    { tipo: 'Casa',        quantidade: mockProperties.filter(p => p.tipo === 'casa').length },
-    { tipo: 'Comercial',   quantidade: mockProperties.filter(p => p.tipo === 'comercial').length },
-    { tipo: 'Terreno',     quantidade: mockProperties.filter(p => p.tipo === 'terreno').length },
-  ];
+  const axisColor    = isDark ? '#6B7280' : '#8E8E8E';
+  const gridColor    = isDark ? '#2D3348' : '#EFEFEF';
+  const chartPrimary = isDark ? '#4A9BBF' : '#165C7D';
+  const cardStyle    = { background: 'var(--card)', border: `1px solid var(--border)`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' };
 
   const chartTooltipStyle = {
-    backgroundColor: '#fff',
-    border: '1px solid #EFEFEF',
+    backgroundColor: isDark ? '#1A1F2E' : '#FFFFFF',
+    border: `1px solid ${isDark ? '#2D3348' : '#EFEFEF'}`,
     borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+    color: isDark ? '#E2E8F0' : '#1A1A1A',
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Cabeçalho */}
       <div>
-        <h1 className="text-2xl font-semibold" style={{ color: '#1A1A1A' }}>Dashboard</h1>
-        <p className="mt-1 text-sm" style={{ color: '#6A6A6A' }}>Visão geral da gestão de imóveis</p>
+        <h1 className="text-2xl font-semibold" style={{ color: 'var(--foreground)' }}>Dashboard</h1>
+        <p className="mt-1 text-sm" style={{ color: 'var(--muted-foreground)' }}>Visão geral da gestão de imóveis</p>
       </div>
 
-      {/* KPI Cards — variantes do design system */}
+      {/* KPIs */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          label="Total de Imóveis"
-          value={totalImoveis}
-          description="Cadastrados no sistema"
-          icon={Building2}
-          variant="default"
-        />
-        <KpiCard
-          label="Imóveis Alugados"
-          value={imoveisAlugados}
-          description={`${((imoveisAlugados / totalImoveis) * 100).toFixed(0)}% de ocupação`}
-          descriptionColor="#009033"
-          icon={Home}
-          variant="success"
-        />
-        <KpiCard
-          label="Receita Mensal"
-          value={`R$ ${receitaMensal.toLocaleString('pt-BR')}`}
-          description="+12.5% em relação ao mês anterior"
-          descriptionColor="#009033"
-          icon={TrendingUp}
-          variant="info"
-        />
-        <KpiCard
-          label="Pagamentos Atrasados"
-          value={pagamentosAtrasados}
-          description="Requer atenção imediata"
-          descriptionColor="#E63946"
-          icon={AlertCircle}
-          variant="danger"
-        />
+        <KpiCard label="Total de Imóveis"        value={total}                                                           description="Cadastrados no sistema"                   icon={Building2}    variant="default" isDark={isDark} />
+        <KpiCard label="Valor Total em Carteira"  value={`R$ ${(valorTotal / 1_000_000).toFixed(1)}M`}                   description="Soma dos valores de avaliação"            icon={DollarSign}   variant="info"    isDark={isDark} />
+        <KpiCard label="Valor Médio por Imóvel"   value={`R$ ${mediaValor.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`} description="Média dos valores de avaliação"  icon={TrendingUp}   variant="success" isDark={isDark} />
+        <KpiCard label="Área Total"               value={`${areaTotal.toLocaleString('pt-BR')} m²`}                      description="Soma das áreas cadastradas"                icon={Layers}       variant="alert"   isDark={isDark} />
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Receita Mensal */}
-        <div
-          className="rounded-xl p-6"
-          style={{ background: '#FFFFFF', border: '1px solid #EFEFEF', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-        >
-          <p className="text-base font-semibold mb-4" style={{ color: '#1A1A1A' }}>Receita Mensal</p>
+      {/* Gráfico: Imóveis por Tipo */}
+      {tipoData.length > 0 && (
+        <div className="rounded-xl p-6" style={cardStyle}>
+          <p className="text-base font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Imóveis por Tipo</p>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={receitaMensalData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#EFEFEF" />
-              <XAxis dataKey="mes" stroke="#8E8E8E" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#8E8E8E" tick={{ fontSize: 12 }} />
-              <Tooltip
-                formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR')}`}
-                contentStyle={chartTooltipStyle}
-              />
-              <Line
-                type="monotone"
-                dataKey="valor"
-                stroke="#165C7D"
-                strokeWidth={2}
-                dot={{ fill: '#165C7D', r: 4 }}
-                activeDot={{ r: 6, fill: '#124A65' }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Status dos Imóveis */}
-        <div
-          className="rounded-xl p-6"
-          style={{ background: '#FFFFFF', border: '1px solid #EFEFEF', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-        >
-          <p className="text-base font-semibold mb-4" style={{ color: '#1A1A1A' }}>Status dos Imóveis</p>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={statusData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={100}
-                dataKey="value"
-              >
-                {statusData.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                ))}
-              </Pie>
+            <BarChart data={tipoData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis dataKey="tipo" stroke={axisColor} tick={{ fontSize: 12 }} />
+              <YAxis stroke={axisColor} tick={{ fontSize: 12 }} allowDecimals={false} />
               <Tooltip contentStyle={chartTooltipStyle} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Imóveis por Tipo — full width */}
-        <div
-          className="lg:col-span-2 rounded-xl p-6"
-          style={{ background: '#FFFFFF', border: '1px solid #EFEFEF', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-        >
-          <p className="text-base font-semibold mb-4" style={{ color: '#1A1A1A' }}>Imóveis por Tipo</p>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={tipoImovelData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#EFEFEF" />
-              <XAxis dataKey="tipo" stroke="#8E8E8E" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#8E8E8E" tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={chartTooltipStyle} />
-              <Bar dataKey="quantidade" fill="#165C7D" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="quantidade" fill={chartPrimary} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      )}
 
-      {/* Atividades Recentes */}
-      <div
-        className="rounded-xl p-6"
-        style={{ background: '#FFFFFF', border: '1px solid #EFEFEF', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-      >
-        <p className="text-base font-semibold mb-4" style={{ color: '#1A1A1A' }}>Atividades Recentes</p>
-        <div className="space-y-4">
-          {[
-            { dot: '#00B140', title: 'Pagamento recebido',       sub: 'João Silva — Apartamento Centro — R$ 2.500',   time: 'Há 2 horas' },
-            { dot: '#165C7D', title: 'Novo contrato assinado',   sub: 'Maria Santos — Sala Comercial Paulista',        time: 'Há 1 dia' },
-            { dot: '#FFA300', title: 'Imóvel em manutenção',     sub: 'Cobertura Duplex — Pintura e reparos',          time: 'Há 2 dias' },
-            { dot: '#00B140', title: 'Novo imóvel cadastrado',   sub: 'Casa com Piscina — Campinas/SP',                time: 'Há 3 dias' },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-4 pb-4"
-              style={{ borderBottom: i < 3 ? '1px solid #EFEFEF' : 'none' }}
-            >
-              <div
-                className="w-2 h-2 rounded-full mt-2 flex-shrink-0"
-                style={{ background: item.dot }}
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>{item.title}</p>
-                <p className="text-sm" style={{ color: '#6A6A6A' }}>{item.sub}</p>
-                <p className="text-xs mt-1" style={{ color: '#8E8E8E' }}>{item.time}</p>
+      {/* Lista recente */}
+      {imoveis.length > 0 && (
+        <div className="rounded-xl p-6" style={cardStyle}>
+          <p className="text-base font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Imóveis Cadastrados</p>
+          <div className="space-y-3">
+            {imoveis.slice(0, 5).map(imovel => (
+              <div key={imovel.id} className="flex items-center justify-between py-3 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                    {imovel.tipoImovel} — {imovel.enderecoDTO?.cidadeNome ?? '—'}/{imovel.enderecoDTO?.estadoSigla ?? '—'}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                    {imovel.area} m² · {imovel.quartos} quartos · Matrícula {imovel.numeroMatricula}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>
+                  R$ {(imovel.valorAvaliacao ?? 0).toLocaleString('pt-BR')}
+                </p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {total === 0 && (
+        <div className="rounded-xl p-12 text-center" style={cardStyle}>
+          <Building2 className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--ailos-cinza-400)' }} />
+          <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Nenhum imóvel cadastrado</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>Cadastre o primeiro imóvel para ver as estatísticas.</p>
+        </div>
+      )}
     </div>
   );
 }

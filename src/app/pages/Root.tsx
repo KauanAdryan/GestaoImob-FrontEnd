@@ -1,176 +1,229 @@
-import { Outlet, Link, useLocation } from 'react-router';
-import { LayoutDashboard, Building2, Users, FileText, DollarSign, Menu, X, ChevronRight, LogOut, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router';
+import { Sun, Moon, Plus, ChevronDown, LogOut, LayoutDashboard, Building2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
+import { authService } from '../../services/auth';
 
-/* ──────────────────────────────────────────
- * Sidebar — Ailos Light
- * Background: azul-100 (#E1EBF0) com gradiente sutil
- * Nav ativo:  fundo branco + borda esq. azul-500 + sombra
- * Nav hover:  azul-50 (#F0F5F7)
- * Width:      280px
- * ────────────────────────────────────────── */
-const SIDEBAR_BG     = 'linear-gradient(180deg, #E1EBF0 0%, #EEF4F7 100%)';
-const SIDEBAR_BORDER = '#D2E2E8';   // azul-200
-const NAV_INACTIVE   = '#474747';   // cinza-700
-const NAV_HOVER_BG   = '#F0F5F7';  // azul-50
-const NAV_HOVER_TEXT = '#124A65';  // azul-600
-const NAV_ACTIVE_BG  = '#FFFFFF';
-const NAV_ACTIVE_TXT = '#124A65';  // azul-600
-const NAV_ACTIVE_BDR = '#165C7D';  // azul-500
-const LOGO_COLOR     = '#165C7D';  // azul-500
-const SECTION_COLOR  = '#5F92A9';  // azul-400
+function Header() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
-const navigation = [
-  { name: 'Dashboard',     href: '/',            icon: LayoutDashboard },
-  { name: 'Gestão de Bens',href: '/gestao-bens', icon: Building2       },
-  { name: 'Inquilinos',    href: '/inquilinos',   icon: Users            },
-  { name: 'Contratos',     href: '/contratos',    icon: FileText         },
-  { name: 'Financeiro',    href: '/financeiro',   icon: DollarSign       },
-];
+  const navLinks = [
+    { href: '/dashboard',   label: 'Dashboard',      icon: LayoutDashboard },
+    { href: '/gestao-bens', label: 'Gestão de Bens',  icon: Building2       },
+  ];
 
-function NavItem({
-  item,
-  active,
-  onClick,
-}: {
-  item: { name: string; href: string; icon: React.ElementType };
-  active: boolean;
-  onClick?: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
+  const isActive = (href: string) =>
+    location.pathname === href || location.pathname.startsWith(href + '/');
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const user = authService.getUser();
+
+  const initials = user?.dsNome
+    ?.split(' ')
+    .slice(0, 2)
+    .map(n => n[0])
+    .join('')
+    .toUpperCase() ?? 'U';
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login');
+  };
 
   return (
-    <Link
-      to={item.href}
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="flex items-center gap-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150"
+    <header
+      className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 px-8"
       style={{
-        background:  active ? NAV_ACTIVE_BG  : hovered ? NAV_HOVER_BG  : 'transparent',
-        color:       active ? NAV_ACTIVE_TXT : hovered ? NAV_HOVER_TEXT : NAV_INACTIVE,
-        borderLeft:  active ? `3px solid ${NAV_ACTIVE_BDR}` : '3px solid transparent',
-        paddingLeft: active ? 13 : 16,
-        paddingRight: 16,
-        boxShadow:   active ? '0 2px 4px rgba(0,0,0,0.04)' : 'none',
+        background:   'var(--card)',
+        borderBottom: '1px solid var(--border)',
+        boxShadow:    '0 1px 4px rgba(0,0,0,0.05)',
       }}
     >
-      <item.icon style={{ width: 18, height: 18, flexShrink: 0 }} />
-      <span className="flex-1">{item.name}</span>
-      {active && <ChevronRight style={{ width: 14, height: 14, opacity: 0.5 }} />}
-    </Link>
+      {/* Nome do sistema */}
+      {/* Logo + separador + navegação */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--primary)' }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className="font-bold text-base" style={{ color: 'var(--primary)' }}>
+            Gestão de Bens
+          </span>
+        </div>
+
+        {/* Separador vertical */}
+        <div className="w-px h-6" style={{ background: 'var(--border)' }} />
+
+        {/* Navegação */}
+        <nav className="flex items-center gap-1">
+          {navLinks.map(link => {
+            const active = isActive(link.href);
+            return (
+              <button
+                key={link.href}
+                type="button"
+                onClick={() => navigate(link.href)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all duration-150"
+                style={{
+                  background: active ? 'var(--ailos-azul-50)' : 'transparent',
+                  color:      active ? 'var(--primary)' : 'var(--ailos-cinza-600)',
+                  fontWeight: active ? 600 : 400,
+                }}
+                onMouseEnter={e => {
+                  if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--accent)';
+                }}
+                onMouseLeave={e => {
+                  if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent';
+                }}
+              >
+                <link.icon className="w-4 h-4" />
+                {link.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Ações */}
+      <div className="flex items-center gap-2">
+
+        {/* Cadastrar */}
+        <button
+          type="button"
+          onClick={() => navigate('/gestao-bens/novo')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-150"
+          style={{ background: 'var(--primary)', boxShadow: '0 2px 8px rgba(22,92,125,0.25)' }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.opacity = '0.88';
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.opacity = '1';
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+          }}
+        >
+          <Plus className="w-4 h-4" />
+          Cadastrar
+        </button>
+
+        {/* Divisor */}
+        <div className="w-px h-7 mx-1" style={{ background: 'var(--border)' }} />
+
+        {/* Toggle tema */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label="Alternar tema"
+          className="p-2 rounded-xl transition-all duration-150"
+          style={{ color: 'var(--ailos-cinza-600)' }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = 'var(--accent)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--primary)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = 'transparent';
+            (e.currentTarget as HTMLElement).style.color = 'var(--ailos-cinza-600)';
+          }}
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+
+        {/* Perfil */}
+        <div className="relative" ref={profileRef}>
+          <button
+            type="button"
+            onClick={() => setProfileOpen(v => !v)}
+            className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl transition-all duration-150"
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--accent)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+              style={{ background: 'var(--primary)' }}
+            >
+              {initials}
+            </div>
+            <span className="text-sm font-medium max-w-[140px] truncate" style={{ color: 'var(--foreground)' }}>
+              {user?.dsNome ?? 'Usuário'}
+            </span>
+            <ChevronDown
+              className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-150"
+              style={{
+                color: 'var(--ailos-cinza-500)',
+                transform: profileOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              }}
+            />
+          </button>
+
+          {profileOpen && (
+            <div
+              className="absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-xl border overflow-hidden"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)', zIndex: 50 }}
+            >
+              <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                    style={{ background: 'var(--primary)' }}
+                  >
+                    {initials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>
+                      {user?.dsNome ?? 'Usuário'}
+                    </p>
+                    <p className="text-xs truncate mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                      {user?.dsEmail ?? ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-2">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
+                  style={{ color: 'var(--ailos-vermelho-500)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--ailos-vermelho-50)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair da conta
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }
 
 export default function Root() {
-  const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const isActive = (href: string) =>
-    href === '/' ? location.pathname === '/' : location.pathname.startsWith(href);
-
-  const SidebarContent = ({ onNav }: { onNav?: () => void }) => (
-    <>
-      {/* Logo */}
-      <div className="flex items-center px-6 py-6" style={{ borderBottom: `1px solid ${SIDEBAR_BORDER}` }}>
-        <span className="font-bold text-xl tracking-tight" style={{ color: LOGO_COLOR }}>
-          Gestão de Bens
-        </span>
-      </div>
-
-      {/* Rótulo */}
-      <div className="px-6 pt-5 pb-2">
-        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECTION_COLOR }}>
-          Menu principal
-        </span>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 space-y-0.5 pb-4">
-        {navigation.map((item) => (
-          <NavItem
-            key={item.name}
-            item={item}
-            active={isActive(item.href)}
-            onClick={onNav}
-          />
-        ))}
-      </nav>
-
-      {/* Rodapé */}
-      <div className="px-3 py-4" style={{ borderTop: `1px solid ${SIDEBAR_BORDER}` }}>
-        <NavItem item={{ name: 'Configurações', href: '/configuracoes', icon: Settings }} active={false} onClick={onNav} />
-        <NavItem item={{ name: 'Sair',          href: '/login',         icon: LogOut   }} active={false} onClick={onNav} />
-        <p className="text-xs mt-3 px-4" style={{ color: '#8E8E8E' }}>© 2026 Ailos</p>
-      </div>
-    </>
-  );
-
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-
-      {/* ── Sidebar Desktop (280px) ── */}
-      <aside
-        className="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col overflow-y-auto"
-        style={{ width: 280, background: SIDEBAR_BG, borderRight: `1px solid ${SIDEBAR_BORDER}` }}
-      >
-        <SidebarContent />
-      </aside>
-
-      {/* ── Header Mobile ── */}
-      <header
-        className="lg:hidden sticky top-0 z-40 flex h-14 items-center justify-between px-4"
-        style={{ background: '#FFFFFF', borderBottom: `1px solid ${SIDEBAR_BORDER}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-      >
-        <span className="font-bold" style={{ color: LOGO_COLOR }}>Gestão de Bens</span>
-        <button
-          type="button"
-          className="p-2 rounded-lg"
-          style={{ color: NAV_INACTIVE }}
-          onClick={() => setMobileMenuOpen(true)}
-          aria-label="Abrir menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </header>
-
-      {/* ── Menu Mobile ── */}
-      {mobileMenuOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-50"
-          style={{ background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(3px)' }}
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          <div
-            className="fixed inset-y-0 left-0 flex flex-col shadow-xl overflow-y-auto"
-            style={{ width: 280, background: SIDEBAR_BG, borderRight: `1px solid ${SIDEBAR_BORDER}` }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              className="flex items-center justify-between px-6 py-5"
-              style={{ borderBottom: `1px solid ${SIDEBAR_BORDER}` }}
-            >
-              <span className="font-bold text-lg" style={{ color: LOGO_COLOR }}>Gestão de Bens</span>
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg"
-                style={{ color: NAV_INACTIVE }}
-                aria-label="Fechar menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <SidebarContent onNav={() => setMobileMenuOpen(false)} />
-          </div>
-        </div>
-      )}
-
-      {/* ── Conteúdo Principal ── */}
-      <div className="lg:pl-[280px]">
-        <main className="py-6 px-4 sm:px-6 lg:px-8">
-          <Outlet />
-        </main>
-      </div>
+    <div className="bg-background" style={{ minHeight: '100vh' }}>
+      <Header />
+      <main className="py-6 px-8">
+        <Outlet />
+      </main>
     </div>
   );
 }

@@ -13,7 +13,7 @@ export function FlowStepper({ currentStage, subStage, onStageClick }: FlowSteppe
   const currentOrder = currentStageConfig?.ordem || 0;
 
   return (
-    <div className="w-full bg-white border border-[var(--ailos-cinza-100)] rounded-xl p-6 shadow-sm">
+    <div className="w-full border rounded-xl p-6 shadow-sm" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
       <div className="relative">
         {/* Linha de progresso */}
         <div className="absolute top-5 left-0 right-0 h-0.5 bg-[var(--ailos-cinza-200)]">
@@ -40,16 +40,13 @@ export function FlowStepper({ currentStage, subStage, onStageClick }: FlowSteppe
                 <button
                   onClick={() => isClickable && onStageClick(stage.id)}
                   disabled={!isClickable}
-                  className={`
-                    w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all
-                    ${isCompleted 
-                      ? 'bg-[var(--ailos-azul-500)] border-[var(--ailos-azul-500)] text-white' 
-                      : isCurrent
-                        ? 'bg-white border-[var(--ailos-azul-500)] text-[var(--ailos-azul-500)] shadow-[0_0_0_4px_var(--ailos-azul-100)]'
-                        : 'bg-white border-[var(--ailos-cinza-300)] text-[var(--ailos-cinza-400)]'
-                    }
-                    ${isClickable ? 'cursor-pointer hover:scale-110' : 'cursor-default'}
-                  `}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isClickable ? 'cursor-pointer hover:scale-110' : 'cursor-default'}`}
+                  style={{
+                    background:  isCompleted ? 'var(--ailos-azul-500)' : 'var(--card)',
+                    borderColor: isCompleted || isCurrent ? 'var(--ailos-azul-500)' : 'var(--ailos-cinza-300)',
+                    color:       isCompleted ? 'white' : isCurrent ? 'var(--ailos-azul-500)' : 'var(--ailos-cinza-400)',
+                    boxShadow:   isCurrent ? '0 0 0 4px var(--ailos-azul-100)' : 'none',
+                  }}
                 >
                   {isCompleted ? (
                     <Check className="h-5 w-5" />

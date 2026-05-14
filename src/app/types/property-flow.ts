@@ -1,9 +1,10 @@
-export type FlowStage = 
-  | 'notificacao'
-  | 'consolidacao'
+export type FlowStage =
+  | 'cadastro'
   | 'leilao'
+  | 'averbacao'
   | 'negociacao-amigavel'
   | 'negociacao-nao-amigavel'
+  | 'juridico'
   | 'manutencao-precificacao'
   | 'comercial'
   | 'venda'

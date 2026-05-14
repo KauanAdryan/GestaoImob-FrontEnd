@@ -24,7 +24,7 @@ export default function Login() {
     setLoading(true);
     try {
       await authService.login(dsEmail, dsSenha);
-      navigate('/gestao-bens');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'E-mail ou senha incorretos. Tente novamente.');
     } finally {

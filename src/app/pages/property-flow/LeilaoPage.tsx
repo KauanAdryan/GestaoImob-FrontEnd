@@ -1,26 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { ArrowLeft, Plus, Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
-import { mockLeiloes, mockProperties } from '../../data/property-flow-updated';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { imovelService, enderecoLabel, type ImovelAPI } from '../../../services/imovelService';
 
 export default function LeilaoPage() {
   const { id } = useParams();
-  const property = mockProperties.find(p => p.id === id);
-  const leiloes = mockLeiloes.filter(l => l.imovelId === id);
-  
+  const [imovel, setImovel] = useState<ImovelAPI | null>(null);
   const [vendidoLeilao, setVendidoLeilao] = useState(false);
 
-  if (!property) {
-    return <p className="text-center text-gray-500">Imóvel não encontrado</p>;
+  useEffect(() => {
+    if (id) imovelService.getById(id).then(setImovel).catch(console.error);
+  }, [id]);
+
+  if (!imovel) {
+    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>;
   }
 
   return (
@@ -33,8 +32,8 @@ export default function LeilaoPage() {
             Voltar para Detalhes
           </Button>
         </Link>
-        <h1 className="text-2xl font-semibold text-gray-900">Leilão - {property.codigo}</h1>
-        <p className="text-sm text-gray-600 mt-1">{property.endereco}</p>
+        <h1 className="text-2xl font-semibold" style={{ color: 'var(--foreground)' }}>Leilão — {imovel.tipoImovel}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>{enderecoLabel(imovel)}</p>
       </div>
 
       {/* Seção: Leilões Obrigatórios */}
@@ -49,7 +48,7 @@ export default function LeilaoPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {leiloes.map((leilao) => (
+          {([] as never[]).map((leilao: never) => (
             <Card key={leilao.id} className={leilao.status === 'vendido' ? 'border-green-500 border-2' : ''}>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

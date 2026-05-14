@@ -44,10 +44,26 @@ export const authService = {
   },
 
   getUser(): AuthUser | null {
+    // Try localStorage first (populated when backend returns user in login response)
     const raw = localStorage.getItem('auth_user');
-    if (!raw) return null;
+    if (raw && raw !== 'undefined' && raw !== 'null') {
+      try {
+        const parsed = JSON.parse(raw) as AuthUser;
+        if (parsed?.id) return parsed;
+      } catch {}
+    }
+    // Fallback: decode JWT payload to extract user info
+    const token = localStorage.getItem('auth_token');
+    if (!token) return null;
     try {
-      return JSON.parse(raw) as AuthUser;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (!payload?.sub) return null;
+      return {
+        id:      payload.sub,
+        dsNome:  payload.nome  ?? payload.name   ?? payload.dsNome  ?? '',
+        dsEmail: payload.email ?? payload.dsEmail ?? '',
+        dsRole:  payload.role  ?? payload.dsRole,
+      };
     } catch {
       return null;
     }
