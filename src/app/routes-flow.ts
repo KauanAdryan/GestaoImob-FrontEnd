@@ -8,6 +8,7 @@ import ComercialPage from './pages/property-flow/ComercialPage';
 import VendaPage from './pages/property-flow/VendaPage';
 import PosVendaPage from './pages/property-flow/PosVendaPage';
 import CadastroImovelPage from './pages/property-flow/CadastroImovelPage';
+import ClientesPage from './pages/clientes/ClientesPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Root from './pages/Root';
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
     Component: Root,
     children: [
       { path: '/dashboard', Component: Dashboard },
+      { path: '/clientes', Component: ClientesPage },
       {
         path: '/gestao-bens',
         children: [

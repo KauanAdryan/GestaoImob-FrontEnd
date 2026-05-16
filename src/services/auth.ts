@@ -59,9 +59,9 @@ export const authService = {
       const payload = JSON.parse(atob(token.split('.')[1]));
       if (!payload?.sub) return null;
       return {
-        id:      payload.sub,
+        id:      payload.id ?? payload.userId ?? payload.user_id ?? payload.sub,
         dsNome:  payload.nome  ?? payload.name   ?? payload.dsNome  ?? '',
-        dsEmail: payload.email ?? payload.dsEmail ?? '',
+        dsEmail: payload.email ?? payload.dsEmail ?? payload.sub   ?? '',
         dsRole:  payload.role  ?? payload.dsRole,
       };
     } catch {

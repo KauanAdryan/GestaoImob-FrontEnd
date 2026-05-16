@@ -1,11 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import {
   ArrowLeft, Save, Upload, X, Home, MapPin, FileText,
-  AlertCircle, ChevronRight, Check, Loader2,
+  AlertCircle, ChevronRight, Check, Loader2, Users,
 } from 'lucide-react';
 import { api } from '../../../services/api';
+import { clienteService, type ClienteAPI } from '../../../services/clienteService';
 
 const styles = `
   @keyframes fadeInUp {
@@ -97,6 +98,13 @@ export default function CadastroImovelPage() {
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [clientes, setClientes] = useState<ClienteAPI[]>([]);
+  const [clienteId, setClienteId] = useState<string>('');
+
+  useEffect(() => {
+    clienteService.getAll().then(setClientes).catch(console.error);
+  }, []);
+
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
@@ -142,7 +150,7 @@ export default function CadastroImovelPage() {
     try {
       const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
       const data = await res.json();
-      if (data.erro) { setCepError('CEP não encontrado.'); return; }
+      if (data.erro) { setCepError('CEP não encontrado. Preencha o endereço manualmente.'); return; }
       setForm(f => ({
         ...f,
         ruaNome:         data.logradouro ?? f.ruaNome,
@@ -151,7 +159,7 @@ export default function CadastroImovelPage() {
         estadoSigla:     data.uf         ?? f.estadoSigla,
       }));
     } catch {
-      setCepError('Erro ao buscar CEP.');
+      setCepError('Não foi possível buscar o CEP. Preencha o endereço manualmente.');
     } finally {
       setCepLoading(false);
     }
@@ -223,6 +231,9 @@ export default function CadastroImovelPage() {
         cartorioRegistro: form.cartorioRegistro,
         descricao:        form.descricao || null,
         fotosImovel:      form.fotosImovel,
+        etapa:            'CADASTRO',
+        status:           'DISPONIVEL',
+        clienteId:        clienteId || null,
         responsavelId:    null,
         endereco: {
           cep:             form.cep.replace(/\D/g, '').replace(/^(\d{5})(\d{3})$/, '$1-$2'),
@@ -634,6 +645,38 @@ export default function CadastroImovelPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Cliente responsável */}
+              <div className="rounded-2xl border overflow-hidden" style={cardStyle}>
+                <div className="flex items-center gap-3 px-6 py-4 border-b" style={sectionHeaderStyle}>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--ailos-azul-50)' }}>
+                    <Users className="w-4 h-4" style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <h2 className="font-bold" style={{ color: 'var(--foreground)' }}>Cliente Responsável</h2>
+                </div>
+                <div className="p-6">
+                  <label className="text-sm font-semibold mb-1.5 block" style={{ color: 'var(--foreground)' }}>
+                    Selecione o cliente
+                  </label>
+                  <Select value={clienteId} onValueChange={setClienteId}>
+                    <SelectTrigger className="field-input" style={{ height: '42px' }}>
+                      <SelectValue placeholder={clientes.length === 0 ? 'Nenhum cliente cadastrado' : 'Selecione um cliente'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome} — Ag. {String(c.agencia).padStart(4, '0')} / Cc. {c.conta}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {clientes.length === 0 && (
+                    <p className="text-xs mt-2" style={{ color: 'var(--ailos-cinza-500)' }}>
+                      Cadastre clientes na tela de Clientes antes de associar.
+                    </p>
+                  )}
                 </div>
               </div>
 

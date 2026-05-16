@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, TrendingUp, DollarSign, Layers } from 'lucide-react';
+import { Building2, TrendingUp, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '../../contexts/ThemeContext';
 import { imovelService, type ImovelAPI } from '../../services/imovelService';
@@ -51,7 +51,6 @@ export default function Dashboard() {
 
   const total          = imoveis.length;
   const valorTotal     = imoveis.reduce((s, i) => s + (i.valorAvaliacao ?? 0), 0);
-  const areaTotal      = imoveis.reduce((s, i) => s + (i.area ?? 0), 0);
   const mediaValor     = total > 0 ? valorTotal / total : 0;
 
   const tipoData = ['Apartamento', 'Casa', 'Comercial', 'Terreno', 'Galpao', 'Rural'].map(tipo => ({
@@ -87,11 +86,10 @@ export default function Dashboard() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard label="Total de Imóveis"        value={total}                                                           description="Cadastrados no sistema"                   icon={Building2}    variant="default" isDark={isDark} />
         <KpiCard label="Valor Total em Carteira"  value={`R$ ${(valorTotal / 1_000_000).toFixed(1)}M`}                   description="Soma dos valores de avaliação"            icon={DollarSign}   variant="info"    isDark={isDark} />
         <KpiCard label="Valor Médio por Imóvel"   value={`R$ ${mediaValor.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`} description="Média dos valores de avaliação"  icon={TrendingUp}   variant="success" isDark={isDark} />
-        <KpiCard label="Área Total"               value={`${areaTotal.toLocaleString('pt-BR')} m²`}                      description="Soma das áreas cadastradas"                icon={Layers}       variant="alert"   isDark={isDark} />
       </div>
 
       {/* Gráfico: Imóveis por Tipo */}
@@ -103,7 +101,10 @@ export default function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               <XAxis dataKey="tipo" stroke={axisColor} tick={{ fontSize: 12 }} />
               <YAxis stroke={axisColor} tick={{ fontSize: 12 }} allowDecimals={false} />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip
+                contentStyle={chartTooltipStyle}
+                cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }}
+              />
               <Bar dataKey="quantidade" fill={chartPrimary} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

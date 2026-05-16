@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
-import { Sun, Moon, Plus, ChevronDown, LogOut, LayoutDashboard, Building2 } from 'lucide-react';
+import { Sun, Moon, Plus, ChevronDown, LogOut, LayoutDashboard, Building2, Users } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { authService } from '../../services/auth';
@@ -12,6 +12,7 @@ function Header() {
   const navLinks = [
     { href: '/dashboard',   label: 'Dashboard',      icon: LayoutDashboard },
     { href: '/gestao-bens', label: 'Gestão de Bens',  icon: Building2       },
+    { href: '/clientes',    label: 'Clientes',        icon: Users           },
   ];
 
   const isActive = (href: string) =>
