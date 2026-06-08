@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { Tabs, TabsContent, TabsList } from '../../components/ui/tabs';
 import { ArrowLeft, MapPin, DollarSign, FileText, Building2, Plus, Pencil, X, Save, Loader2, AlertCircle, Scale, Home, Trash2 } from 'lucide-react';
-import { imovelService, enderecoLabel, imovelLabel, etapaToFlowStage, etapaLabel, STATUS_CONFIG, type ImovelAPI } from '../../../services/imovelService';
+import { imovelService, enderecoLabel, imovelLabel, etapaToFlowStage, etapaLabel, STATUS_CONFIG, type ImovelAPI, type ImovelEtapa, type ImovelStatus } from '../../../services/imovelService';
 import { negociacaoService, type NegociacaoAPI, type NegociacaoPayload } from '../../../services/negociacaoService';
 import { clienteService, type ClienteAPI } from '../../../services/clienteService';
 import { documentoService, type DocumentoAPI } from '../../../services/documentoService';
 import { despesaService, type DespesaAPI, type DespesaPayload } from '../../../services/despesaService';
 import { leilaoService, LEILAO_STATUS_CONFIG, type LeilaoAPI, type LeilaoPayload, type LeilaoStatus } from '../../../services/leilaoService';
+import { ocorrenciaService, type OcorrenciaAPI } from '../../../services/ocorrenciaService';
 import { FlowStepper } from '../../components/property-flow/FlowStepper';
 
 const styles = `
@@ -31,7 +32,7 @@ export default function PropertyFlowDetail() {
   const [activeTab, setActiveTab]     = useState('resumo');
 
   type LeilaoForm = { numero: string; data: string; valorMinimo: string; status: LeilaoStatus };
-  const emptyLeilao: LeilaoForm = { numero: '', data: '', valorMinimo: '', status: 'AGENDADO' };
+  const emptyLeilao: LeilaoForm = { numero: '', data: '', valorMinimo: '', status: '1º LEILÃO' };
   const [leiloes, setLeiloes]           = useState<LeilaoAPI[]>([]);
   const [leilaoLoading, setLeilaoLoading] = useState(false);
   const [showLeilaoForm, setShowLeilaoForm] = useState(false);
@@ -63,6 +64,20 @@ export default function PropertyFlowDetail() {
   const [negForm, setNegForm]         = useState<NegFormState>(emptyNegForm);
   const [negSaving, setNegSaving]     = useState(false);
   const [negError, setNegError]       = useState('');
+
+  const [showEtapaForm, setShowEtapaForm] = useState(false);
+  const [etapaForm, setEtapaForm]         = useState<{ etapa: ImovelEtapa; status: ImovelStatus }>({ etapa: 'CADASTRO', status: 'DISPONIVEL' });
+  const [etapaSaving, setEtapaSaving]     = useState(false);
+  const [etapaError, setEtapaError]       = useState('');
+
+  const [ocorrencias, setOcorrencias]         = useState<OcorrenciaAPI[]>([]);
+  const [ocorrLoading, setOcorrLoading]       = useState(false);
+  const [showOcorrForm, setShowOcorrForm]     = useState(false);
+  const [ocorrEdit, setOcorrEdit]             = useState<OcorrenciaAPI | null>(null);
+  const [ocorrText, setOcorrText]             = useState('');
+  const [ocorrSaving, setOcorrSaving]         = useState(false);
+  const [ocorrDeleting, setOcorrDeleting]     = useState<string | null>(null);
+  const [ocorrError, setOcorrError]           = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -121,7 +136,7 @@ export default function PropertyFlowDetail() {
     if (!leilaoForm.valorMinimo) { setLeilaoError('Informe o valor mínimo.'); return; }
     const toNum = (v: string) => parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
     const payload: LeilaoPayload = {
-      imovel:      { id: id! },
+      imovelId:    id!,
       numero:      parseInt(leilaoForm.numero, 10),
       data:        leilaoForm.data,
       valorMinimo: toNum(leilaoForm.valorMinimo),
@@ -130,12 +145,12 @@ export default function PropertyFlowDetail() {
     setLeilaoSaving(true);
     try {
       if (leilaoEdit) {
-        const updated = await leilaoService.update(leilaoEdit.id, payload);
-        setLeiloes(prev => prev.map(l => l.id === updated.id ? updated : l));
+        await leilaoService.update(leilaoEdit.id, payload);
       } else {
-        const created = await leilaoService.create(payload);
-        setLeiloes(prev => [...prev, created].sort((a, b) => a.numero - b.numero));
+        await leilaoService.create(payload);
       }
+      const fresh = await leilaoService.getByImovel(id!);
+      setLeiloes(Array.isArray(fresh) ? fresh.sort((a, b) => a.numero - b.numero) : []);
       setShowLeilaoForm(false);
     } catch (err) {
       setLeilaoError(err instanceof Error ? err.message : 'Erro ao salvar.');
@@ -199,7 +214,7 @@ export default function PropertyFlowDetail() {
     if (!despForm.valor)            { setDespError('Informe o valor.'); return; }
     const toNum = (v: string) => parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
     const payload: DespesaPayload = {
-      imovel:    { id: id! },
+      imovelId:  id!,
       categoria: despForm.categoria.trim(),
       data:      despForm.data,
       valor:     toNum(despForm.valor),
@@ -226,7 +241,7 @@ export default function PropertyFlowDetail() {
     setDespToggling(d.id);
     try {
       const updated = await despesaService.update(d.id, {
-        imovel:    { id: id! },
+        imovelId:  id!,
         categoria: d.categoria,
         data:      d.data,
         valor:     d.valor,
@@ -321,6 +336,86 @@ export default function PropertyFlowDetail() {
       setNegError(err instanceof Error ? err.message : 'Erro ao salvar.');
     } finally {
       setNegSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!id) return;
+    setOcorrLoading(true);
+    ocorrenciaService.getByImovel(id)
+      .then(data => setOcorrencias(Array.isArray(data) ? data : []))
+      .catch(() => setOcorrencias([]))
+      .finally(() => setOcorrLoading(false));
+  }, [id]);
+
+  const openOcorrCreate = () => {
+    setOcorrEdit(null);
+    setOcorrText('');
+    setOcorrError('');
+    setShowOcorrForm(true);
+  };
+
+  const openOcorrEdit = (o: OcorrenciaAPI) => {
+    setOcorrEdit(o);
+    setOcorrText(o.descricao);
+    setOcorrError('');
+    setShowOcorrForm(true);
+  };
+
+  const handleOcorrSubmit = async () => {
+    setOcorrError('');
+    if (!ocorrText.trim()) { setOcorrError('Informe a descrição.'); return; }
+    setOcorrSaving(true);
+    try {
+      const payload = { imovelId: id!, descricao: ocorrText.trim() };
+      if (ocorrEdit) {
+        const updated = await ocorrenciaService.update(ocorrEdit.id, payload);
+        setOcorrencias(prev => prev.map(o => o.id === updated.id ? updated : o));
+      } else {
+        const created = await ocorrenciaService.create(payload);
+        setOcorrencias(prev => [created, ...prev]);
+      }
+      setShowOcorrForm(false);
+    } catch (err) {
+      setOcorrError(err instanceof Error ? err.message : 'Erro ao salvar.');
+    } finally {
+      setOcorrSaving(false);
+    }
+  };
+
+  const handleOcorrDelete = async (o: OcorrenciaAPI) => {
+    if (!confirm('Excluir esta ocorrência?')) return;
+    setOcorrDeleting(o.id);
+    try {
+      await ocorrenciaService.delete(o.id);
+      setOcorrencias(prev => prev.filter(x => x.id !== o.id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao excluir.');
+    } finally {
+      setOcorrDeleting(null);
+    }
+  };
+
+  const openEtapaForm = () => {
+    setEtapaForm({
+      etapa:  imovel?.etapa  ?? 'CADASTRO',
+      status: imovel?.status ?? 'DISPONIVEL',
+    });
+    setEtapaError('');
+    setShowEtapaForm(true);
+  };
+
+  const handleEtapaSubmit = async () => {
+    setEtapaError('');
+    setEtapaSaving(true);
+    try {
+      const updated = await imovelService.updateEtapaStatus(id!, etapaForm);
+      setImovel(updated);
+      setShowEtapaForm(false);
+    } catch (err) {
+      setEtapaError(err instanceof Error ? err.message : 'Erro ao atualizar.');
+    } finally {
+      setEtapaSaving(false);
     }
   };
 
@@ -458,6 +553,7 @@ export default function PropertyFlowDetail() {
                   { value: 'negociacoes',   label: 'Negociações' },
                   { value: 'documentos',    label: 'Documentos' },
                   { value: 'despesas',      label: 'Despesas' },
+                  { value: 'ocorrencias',   label: 'Ocorrências' },
                 ].map(tab => (
                   <button key={tab.value} onClick={() => setActiveTab(tab.value)}
                     className="flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all duration-200"
@@ -483,33 +579,103 @@ export default function PropertyFlowDetail() {
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         {/* Etapa Atual */}
                         <div className="rounded-2xl border p-5" style={cardStyle}>
-                          <p className="text-base font-bold mb-4" style={{ color: 'var(--foreground)' }}>Etapa Atual</p>
-                          <div className="space-y-3">
-                            <div>
-                              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Etapa</p>
-                              <p className="text-lg font-bold mt-0.5" style={{ color: 'var(--primary)' }}>
-                                {imovel.etapa ? etapaLabel(imovel.etapa) : '—'}
-                              </p>
-                            </div>
-                            <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-                              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Status</p>
-                              {imovel.status
-                                ? <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold border"
-                                    style={{ background: STATUS_CONFIG[imovel.status].bg, color: STATUS_CONFIG[imovel.status].color, borderColor: STATUS_CONFIG[imovel.status].border }}>
-                                    {STATUS_CONFIG[imovel.status].label}
-                                  </span>
-                                : <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>—</p>
-                              }
-                            </div>
-                            <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-                              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Data de Avaliação</p>
-                              <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
-                                {imovel.dataAvaliacao
-                                  ? new Date(imovel.dataAvaliacao).toLocaleDateString('pt-BR')
-                                  : '—'}
-                              </p>
-                            </div>
+                          <div className="flex items-center justify-between mb-4">
+                            <p className="text-base font-bold" style={{ color: 'var(--foreground)' }}>Etapa Atual</p>
+                            {!showEtapaForm && (
+                              <button onClick={openEtapaForm}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold"
+                                style={{ color: 'var(--primary)', borderColor: 'var(--border)', background: 'var(--card)', transition: 'background 0.15s' }}
+                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--ailos-azul-50)'}
+                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--card)'}>
+                                <Pencil className="h-3 w-3" /> Alterar
+                              </button>
+                            )}
                           </div>
+
+                          {showEtapaForm ? (
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted-foreground)' }}>Etapa</label>
+                                <select
+                                  className="w-full px-3 py-2 rounded-xl border text-sm outline-none"
+                                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                                  value={etapaForm.etapa}
+                                  onChange={e => setEtapaForm(f => ({ ...f, etapa: e.target.value as ImovelEtapa }))}>
+                                  {([
+                                    ['CADASTRO',                'Cadastro'],
+                                    ['LEILAO',                  'Leilão'],
+                                    ['NEGOCIACAO_AMIGAVEL',     'Neg. Amigável'],
+                                    ['NEGOCIACAO_NAO_AMIGAVEL', 'Neg. Não Amigável'],
+                                    ['JURIDICO',                'Jurídico'],
+                                    ['COMERCIAL',               'Comercial'],
+                                    ['VENDA',                   'Venda'],
+                                    ['POS_VENDA',               'Pós-Venda'],
+                                  ] as [ImovelEtapa, string][]).map(([v, l]) => (
+                                    <option key={v} value={v}>{l}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted-foreground)' }}>Status</label>
+                                <select
+                                  className="w-full px-3 py-2 rounded-xl border text-sm outline-none"
+                                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                                  value={etapaForm.status}
+                                  onChange={e => setEtapaForm(f => ({ ...f, status: e.target.value as ImovelStatus }))}>
+                                  {(Object.keys(STATUS_CONFIG) as ImovelStatus[]).map(s => (
+                                    <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              {etapaError && (
+                                <div className="flex items-start gap-2 rounded-xl px-3 py-2 border"
+                                  style={{ background: 'var(--ailos-vermelho-50)', borderColor: 'var(--ailos-vermelho-100)' }}>
+                                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--ailos-vermelho-500)' }} />
+                                  <p className="text-xs" style={{ color: 'var(--ailos-vermelho-500)' }}>{etapaError}</p>
+                                </div>
+                              )}
+                              <div className="flex gap-2 pt-1">
+                                <button onClick={() => setShowEtapaForm(false)}
+                                  className="flex-1 py-2 rounded-xl border text-xs font-semibold"
+                                  style={{ color: 'var(--muted-foreground)', borderColor: 'var(--border)', background: 'var(--card)' }}>
+                                  Cancelar
+                                </button>
+                                <button onClick={handleEtapaSubmit} disabled={etapaSaving}
+                                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white"
+                                  style={{ background: 'var(--primary)', opacity: etapaSaving ? 0.7 : 1, cursor: etapaSaving ? 'not-allowed' : 'pointer' }}>
+                                  {etapaSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                  Salvar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Etapa</p>
+                                <p className="text-lg font-bold mt-0.5" style={{ color: 'var(--primary)' }}>
+                                  {imovel.etapa ? etapaLabel(imovel.etapa) : '—'}
+                                </p>
+                              </div>
+                              <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Status</p>
+                                {imovel.status
+                                  ? <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold border"
+                                      style={{ background: STATUS_CONFIG[imovel.status].bg, color: STATUS_CONFIG[imovel.status].color, borderColor: STATUS_CONFIG[imovel.status].border }}>
+                                      {STATUS_CONFIG[imovel.status].label}
+                                    </span>
+                                  : <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>—</p>
+                                }
+                              </div>
+                              <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Data de Avaliação</p>
+                                <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
+                                  {imovel.dataAvaliacao
+                                    ? new Date(imovel.dataAvaliacao).toLocaleDateString('pt-BR')
+                                    : '—'}
+                                </p>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Leilões em Andamento */}
@@ -518,10 +684,10 @@ export default function PropertyFlowDetail() {
                             <Scale className="h-5 w-5" style={{ color: 'var(--primary)' }} />
                             <p className="text-base font-bold" style={{ color: 'var(--foreground)' }}>Leilões em Andamento</p>
                           </div>
-                          {leiloes.filter(l => l.status === 'AGENDADO').length > 0 ? (
+                          {leiloes.filter(l => l.status === '1º LEILÃO' || l.status === '2º LEILÃO').length > 0 ? (
                             <div className="space-y-3">
-                              {leiloes.filter(l => l.status === 'AGENDADO').map(l => {
-                                const cfg = LEILAO_STATUS_CONFIG[l.status];
+                              {leiloes.filter(l => l.status === '1º LEILÃO' || l.status === '2º LEILÃO').map(l => {
+                                const cfg = LEILAO_STATUS_CONFIG[l.status] ?? { label: l.status, color: '#165C7D', bg: 'var(--ailos-azul-50)', border: 'var(--border)' };
                                 return (
                                   <div key={l.id} className="flex items-center gap-3 p-3 rounded-xl border"
                                     style={{ background: cfg.bg, borderColor: cfg.border }}>
@@ -784,7 +950,7 @@ export default function PropertyFlowDetail() {
                 ) : (
                   <div className="space-y-3">
                     {leiloes.map(l => {
-                      const cfg = LEILAO_STATUS_CONFIG[l.status];
+                      const cfg = LEILAO_STATUS_CONFIG[l.status] ?? { label: l.status, color: '#165C7D', bg: 'var(--ailos-azul-50)', border: 'var(--border)' };
                       return (
                         <div key={l.id} className="rounded-2xl border p-4 flex items-center justify-between gap-4" style={cardStyle}>
                           <div className="flex items-center gap-3">
@@ -1280,6 +1446,119 @@ export default function PropertyFlowDetail() {
                             {despDeleting === d.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                             Excluir
                           </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Ocorrências */}
+              <TabsContent value="ocorrencias" className="tab-content-enter space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                    {ocorrencias.length} ocorrência{ocorrencias.length !== 1 ? 's' : ''}
+                  </p>
+                  <button
+                    onClick={openOcorrCreate}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+                    style={{ background: 'var(--primary)' }}
+                  >
+                    <Plus className="h-4 w-4" /> Nova Ocorrência
+                  </button>
+                </div>
+
+                {showOcorrForm && (
+                  <div className="rounded-2xl border overflow-hidden" style={cardStyle}>
+                    <div className="flex items-center justify-between px-5 py-4 border-b" style={sectionHdr}>
+                      <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
+                        {ocorrEdit ? 'Editar Ocorrência' : 'Nova Ocorrência'}
+                      </p>
+                      <button onClick={() => setShowOcorrForm(false)} style={{ color: 'var(--muted-foreground)' }}>
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <label className="text-sm font-semibold mb-1.5 block" style={{ color: 'var(--foreground)' }}>
+                          Descrição <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <textarea
+                          rows={4}
+                          className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none"
+                          style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                          placeholder="Descreva a ocorrência..."
+                          value={ocorrText}
+                          onChange={e => setOcorrText(e.target.value)}
+                          onFocus={e => (e.target.style.borderColor = 'var(--primary)')}
+                          onBlur={e  => (e.target.style.borderColor = 'var(--border)')}
+                        />
+                      </div>
+
+                      {ocorrError && (
+                        <div className="flex items-start gap-2 rounded-xl px-4 py-3 border"
+                          style={{ background: 'var(--ailos-vermelho-50)', borderColor: 'var(--ailos-vermelho-100)' }}>
+                          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ailos-vermelho-500)' }} />
+                          <p className="text-sm" style={{ color: 'var(--ailos-vermelho-500)' }}>{ocorrError}</p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3 pt-1">
+                        <button onClick={() => setShowOcorrForm(false)}
+                          className="px-4 py-2 rounded-xl border text-sm font-semibold"
+                          style={{ color: 'var(--muted-foreground)', borderColor: 'var(--border)', background: 'var(--card)' }}>
+                          Cancelar
+                        </button>
+                        <button onClick={handleOcorrSubmit} disabled={ocorrSaving}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+                          style={{ background: 'var(--primary)', opacity: ocorrSaving ? 0.7 : 1, cursor: ocorrSaving ? 'not-allowed' : 'pointer' }}>
+                          {ocorrSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                          {ocorrSaving ? 'Salvando...' : 'Salvar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {ocorrLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+                  </div>
+                ) : ocorrencias.length === 0 ? (
+                  <div className="rounded-2xl border py-12 text-center" style={cardStyle}>
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--ailos-cinza-400)' }} />
+                    <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Nenhuma ocorrência registrada</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Clique em "Nova Ocorrência" para registrar.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {ocorrencias.map(o => (
+                      <div key={o.id} className="rounded-2xl border p-4" style={cardStyle}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                              style={{ background: 'var(--ailos-amarelo-50)' }}>
+                              <AlertCircle className="w-4 h-4" style={{ color: '#CC8300' }} />
+                            </div>
+                            <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>{o.descricao}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button onClick={() => openOcorrEdit(o)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold"
+                              style={{ color: 'var(--primary)', borderColor: 'var(--border)', background: 'var(--card)', transition: 'background 0.15s' }}
+                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--ailos-azul-50)'}
+                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--card)'}>
+                              <Pencil className="h-3.5 w-3.5" /> Editar
+                            </button>
+                            <button onClick={() => handleOcorrDelete(o)} disabled={ocorrDeleting === o.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold"
+                              style={{ color: 'var(--ailos-vermelho-500)', borderColor: 'var(--border)', background: 'var(--card)', transition: 'background 0.15s', opacity: ocorrDeleting === o.id ? 0.6 : 1 }}
+                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--ailos-vermelho-50)'}
+                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--card)'}>
+                              {ocorrDeleting === o.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              Excluir
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

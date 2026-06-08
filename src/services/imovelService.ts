@@ -28,7 +28,7 @@ export type ImovelEtapa =
   | 'VENDA'
   | 'POS_VENDA';
 
-export type ImovelStatus = 'DISPONIVEL' | 'EM_NEGOCIACAO' | 'VENDIDO';
+export type ImovelStatus = 'DISPONIVEL' | 'EM_NEGOCIACAO' | 'VENDIDO' | 'INDISPONIVEL';
 
 export interface ImovelAPI {
   id: string;
@@ -78,9 +78,10 @@ const ETAPA_LABELS: Record<ImovelEtapa, string> = {
 };
 
 export const STATUS_CONFIG: Record<ImovelStatus, { label: string; color: string; bg: string; border: string }> = {
-  DISPONIVEL:    { label: 'Disponível',    color: '#006829', bg: '#E6F7ED', border: '#CCEFDB' },
-  EM_NEGOCIACAO: { label: 'Em Negociação', color: '#CC8300', bg: '#FFF4E6', border: '#FFE9CC' },
-  VENDIDO:       { label: 'Vendido',       color: '#165C7D', bg: 'var(--ailos-azul-50)', border: 'var(--border)' },
+  DISPONIVEL:    { label: 'Disponível',    color: '#006829', bg: '#E6F7ED',               border: '#CCEFDB' },
+  EM_NEGOCIACAO: { label: 'Em Negociação', color: '#CC8300', bg: '#FFF4E6',               border: '#FFE9CC' },
+  VENDIDO:       { label: 'Vendido',       color: '#165C7D', bg: 'var(--ailos-azul-50)',  border: 'var(--border)' },
+  INDISPONIVEL:  { label: 'Indisponível',  color: '#7c3aed', bg: '#F5F3FF',               border: '#DDD6FE' },
 };
 
 export function etapaToFlowStage(etapa: ImovelEtapa | null): FlowStage {
@@ -123,7 +124,13 @@ function toArray<T>(data: T[] | PageResponse<T> | CustomResponse<T>): T[] {
   return [];
 }
 
+export interface EtapaStatusPayload {
+  etapa:  ImovelEtapa;
+  status: ImovelStatus;
+}
+
 export const imovelService = {
-  getAll:  ()           => api.get<ImovelAPI[] | PageResponse<ImovelAPI>>(`/imoveis`).then(toArray),
-  getById: (id: string) => api.get<ImovelAPI>(`/imoveis/${id}`),
+  getAll:            ()                                    => api.get<ImovelAPI[] | PageResponse<ImovelAPI>>(`/imoveis`).then(toArray),
+  getById:           (id: string)                          => api.get<ImovelAPI>(`/imoveis/${id}`),
+  updateEtapaStatus: (id: string, payload: EtapaStatusPayload) => api.patch<ImovelAPI>(`/imoveis/${id}/etapa-status`, payload),
 };

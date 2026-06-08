@@ -122,7 +122,7 @@ function Header() {
           }}
         >
           <Plus className="w-4 h-4" />
-          Cadastrar
+          Cadastrar Imóvel
         </button>
 
         {/* Divisor */}

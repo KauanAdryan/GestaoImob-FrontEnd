@@ -94,7 +94,6 @@ export default function CadastroImovelPage() {
   const [form, setForm] = useState<FormData>(initialForm);
   const [etapa, setEtapa] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [urlFoto, setUrlFoto] = useState('');
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -183,12 +182,6 @@ export default function CadastroImovelPage() {
     setForm(f => ({ ...f, valorAvaliacao: masked }));
   };
 
-  const adicionarFoto = () => {
-    const url = urlFoto.trim();
-    if (!url) return;
-    setForm(f => ({ ...f, fotosImovel: [...f.fotosImovel, url] }));
-    setUrlFoto('');
-  };
   const removerFoto = (i: number) =>
     setForm(f => ({ ...f, fotosImovel: f.fotosImovel.filter((_, idx) => idx !== i) }));
 
@@ -429,37 +422,6 @@ export default function CadastroImovelPage() {
                         <p className="text-xs" style={{ color: 'var(--ailos-vermelho-500)' }}>{uploadError}</p>
                       )}
 
-                      {/* Separador */}
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-                        <span className="text-xs" style={{ color: 'var(--ailos-cinza-500)' }}>ou cole uma URL</span>
-                        <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-                      </div>
-
-                      {/* Input de URL */}
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          className="field-input flex-1"
-                          placeholder="https://exemplo.com/imagem.jpg"
-                          value={urlFoto}
-                          onChange={e => setUrlFoto(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); adicionarFoto(); } }}
-                        />
-                        <button
-                          type="button"
-                          onClick={adicionarFoto}
-                          disabled={!urlFoto.trim()}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all"
-                          style={{
-                            background: urlFoto.trim() ? 'var(--primary)' : 'var(--ailos-cinza-300)',
-                            cursor:     urlFoto.trim() ? 'pointer' : 'not-allowed',
-                          }}
-                        >
-                          Adicionar
-                        </button>
-                      </div>
-
                       {/* Preview das fotos */}
                       {form.fotosImovel.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -490,7 +452,7 @@ export default function CadastroImovelPage() {
                       )}
 
                       <p className="text-xs" style={{ color: 'var(--ailos-cinza-500)' }}>
-                        Cole a URL de uma imagem e clique em Adicionar. A primeira foto será usada como principal.
+                        A primeira foto será usada como principal.
                       </p>
                     </div>
                   </div>

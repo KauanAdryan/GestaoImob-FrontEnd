@@ -10,7 +10,7 @@ export interface DespesaAPI {
 }
 
 export interface DespesaPayload {
-  imovel: { id: string };
+  imovelId: string;
   categoria: string;
   data: string;
   valor: number;
@@ -19,8 +19,7 @@ export interface DespesaPayload {
 
 export const despesaService = {
   getByImovel: (imovelId: string) =>
-    api.get<DespesaAPI[]>(`/despesas`)
-       .then(list => list.filter(d => d.imovelId === imovelId)),
+    api.get<DespesaAPI[]>(`/despesas/imovel/${imovelId}`),
   create: (payload: DespesaPayload) =>
     api.post<DespesaAPI>('/despesas', payload),
   update: (id: string, payload: DespesaPayload) =>

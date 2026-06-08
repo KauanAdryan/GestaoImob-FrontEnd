@@ -33,7 +33,6 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     let message = `Erro ${response.status}`;
     try {
       const text = await response.text();
-      if (text) console.error(`API ${response.status} body:`, text);
       try {
         const body = JSON.parse(text);
         message = body.message ?? body.error ?? body.detail ?? body.title ?? message;
@@ -41,7 +40,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
         if (text) message = text.slice(0, 300);
       }
     } catch { /* ignore */ }
-    console.error('API error:', response.status, message);
+    if (response.status !== 404) {
+      console.error(`API ${response.status}:`, message);
+    }
     throw new Error(message);
   }
 
