@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Building2, TrendingUp, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '../../contexts/ThemeContext';
 import { imovelService, type ImovelAPI } from '../../services/imovelService';
+import ImovelMap from '../components/ImovelMap';
+import { Slider } from '../components/ui/slider';
 
 type KpiVariant = 'default' | 'success' | 'info' | 'alert';
 
@@ -42,6 +44,14 @@ export default function Dashboard() {
   const [imoveis, setImoveis] = useState<ImovelAPI[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Map filters
+  const [mapEstado,    setMapEstado]    = useState('');
+  const [mapCidade,    setMapCidade]    = useState('');
+  const [mapValorRange, setMapValorRange] = useState<[number, number]>([0, 0]);
+  const [mapDataDe,    setMapDataDe]    = useState('');
+  const [mapDataAte,   setMapDataAte]   = useState('');
+  const rangeInited = useRef(false);
+
   useEffect(() => {
     imovelService.getAll()
       .then(setImoveis)
@@ -49,11 +59,44 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  const sliderMax = imoveis.length > 0
+    ? Math.ceil(Math.max(...imoveis.map(i => i.valorAvaliacao ?? 0)) / 50000) * 50000
+    : 0;
+
+  useEffect(() => {
+    if (!rangeInited.current && sliderMax > 0) {
+      setMapValorRange([0, sliderMax]);
+      rangeInited.current = true;
+    }
+  }, [sliderMax]);
+
+  const estados  = [...new Set(imoveis.map(i => i.enderecoDTO?.estadoSigla).filter(Boolean))].sort() as string[];
+  const cidades  = [...new Set(
+    imoveis
+      .filter(i => !mapEstado || i.enderecoDTO?.estadoSigla === mapEstado)
+      .map(i => i.enderecoDTO?.cidadeNome)
+      .filter(Boolean)
+  )].sort() as string[];
+
+  const imoveisParaMapa = imoveis.filter(i => {
+    if (mapEstado && i.enderecoDTO?.estadoSigla !== mapEstado) return false;
+    if (mapCidade && i.enderecoDTO?.cidadeNome  !== mapCidade)  return false;
+    if (sliderMax > 0) {
+      if ((i.valorAvaliacao ?? 0) < mapValorRange[0]) return false;
+      if ((i.valorAvaliacao ?? 0) > mapValorRange[1]) return false;
+    }
+    if (mapDataDe  && i.dataAvaliacao && i.dataAvaliacao < mapDataDe)  return false;
+    if (mapDataAte && i.dataAvaliacao && i.dataAvaliacao > mapDataAte) return false;
+    return true;
+  });
+
+  const isValorFiltered = sliderMax > 0 && (mapValorRange[0] > 0 || mapValorRange[1] < sliderMax);
+
   const total          = imoveis.length;
   const valorTotal     = imoveis.reduce((s, i) => s + (i.valorAvaliacao ?? 0), 0);
   const mediaValor     = total > 0 ? valorTotal / total : 0;
 
-  const tipoData = ['Apartamento', 'Casa', 'Comercial', 'Terreno', 'Galpao', 'Rural'].map(tipo => ({
+  const tipoData = ['Apartamento', 'Casa', 'Comercial/sala', 'Terreno', 'Galpão/Armazém', 'Propriedade Rural'].map(tipo => ({
     tipo,
     quantidade: imoveis.filter(i => i.tipoImovel === tipo).length,
   })).filter(d => d.quantidade > 0);
@@ -108,6 +151,113 @@ export default function Dashboard() {
               <Bar dataKey="quantidade" fill={chartPrimary} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Mapa de imóveis + filtros */}
+      {imoveis.length > 0 && (
+        <div className="rounded-xl p-6" style={cardStyle}>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>Localização dos Imóveis</p>
+            <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ background: 'var(--ailos-azul-50)', color: 'var(--primary)' }}>
+              {imoveisParaMapa.filter(i => i.latitude != null).length} no mapa
+            </span>
+          </div>
+
+          <div className="flex gap-4 items-start">
+            {/* Filtros */}
+            <div className="flex-shrink-0 space-y-3" style={{ width: 220 }}>
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Filtros</p>
+
+              {/* Estado */}
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--foreground)' }}>Estado</label>
+                <select
+                  value={mapEstado}
+                  onChange={e => { setMapEstado(e.target.value); setMapCidade(''); }}
+                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                >
+                  <option value="">Todos</option>
+                  {estados.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* Cidade */}
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--foreground)' }}>Cidade</label>
+                <select
+                  value={mapCidade}
+                  onChange={e => setMapCidade(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                >
+                  <option value="">Todas</option>
+                  {cidades.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* Valor */}
+              <div>
+                <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--foreground)' }}>Valor de Avaliação</label>
+                {sliderMax > 0 ? (
+                  <>
+                    <Slider
+                      min={0}
+                      max={sliderMax}
+                      step={10000}
+                      value={mapValorRange}
+                      onValueChange={v => setMapValorRange([v[0], v[1]])}
+                      className="mb-2"
+                    />
+                    <div className="flex justify-between text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                      <span>R$ {mapValorRange[0].toLocaleString('pt-BR')}</span>
+                      <span>R$ {mapValorRange[1].toLocaleString('pt-BR')}</span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>—</p>
+                )}
+              </div>
+
+              {/* Data */}
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--foreground)' }}>Data de Avaliação</label>
+                <div className="space-y-1.5">
+                  <input
+                    type="date"
+                    value={mapDataDe}
+                    onChange={e => setMapDataDe(e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs outline-none"
+                    style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                  />
+                  <input
+                    type="date"
+                    value={mapDataAte}
+                    onChange={e => setMapDataAte(e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs outline-none"
+                    style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Limpar filtros */}
+              {(mapEstado || mapCidade || isValorFiltered || mapDataDe || mapDataAte) && (
+                <button
+                  onClick={() => { setMapEstado(''); setMapCidade(''); setMapValorRange([0, sliderMax]); setMapDataDe(''); setMapDataAte(''); }}
+                  className="w-full py-1.5 rounded-lg border text-xs font-semibold"
+                  style={{ color: 'var(--ailos-vermelho-500)', borderColor: 'var(--ailos-vermelho-100)', background: 'var(--ailos-vermelho-50)' }}
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+
+            {/* Mapa */}
+            <div className="flex-1 min-w-0">
+              <ImovelMap imoveis={imoveisParaMapa} isDark={isDark} height={640} />
+            </div>
+          </div>
         </div>
       )}
 

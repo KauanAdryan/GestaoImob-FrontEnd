@@ -251,11 +251,11 @@ export default function PropertyFlowList() {
                       <div className="flex items-center gap-3">
                         {imovel.fotosImovel?.[0] ? (
                           <div className="overflow-hidden rounded-xl border flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
-                            <img src={imovel.fotosImovel[0]} alt="foto" className="w-14 h-14 object-cover" />
+                            <img src={imovel.fotosImovel[0]} alt="foto" className="w-20 h-20 object-cover" />
                           </div>
                         ) : (
-                          <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--ailos-azul-50)' }}>
-                            <Building2 className="w-6 h-6" style={{ color: 'var(--primary)' }} />
+                          <div className="w-20 h-20 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--ailos-azul-50)' }}>
+                            <Building2 className="w-8 h-8" style={{ color: 'var(--primary)' }} />
                           </div>
                         )}
                         <div>

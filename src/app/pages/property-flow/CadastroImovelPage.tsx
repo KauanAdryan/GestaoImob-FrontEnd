@@ -5,8 +5,28 @@ import {
   ArrowLeft, Save, Upload, X, Home, MapPin, FileText,
   AlertCircle, ChevronRight, Check, Loader2, Users,
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { api } from '../../../services/api';
 import { clienteService, type ClienteAPI } from '../../../services/clienteService';
+
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
+L.Icon.Default.mergeOptions({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl });
+
+function LocationPicker({ onPick }: { onPick: (lat: number, lng: number) => void }) {
+  useMapEvents({ click(e) { onPick(e.latlng.lat, e.latlng.lng); } });
+  return null;
+}
+
+function MapRecenter({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMapEvents({});
+  useEffect(() => { map.setView(center, zoom, { animate: true }); }, [map, center, zoom]);
+  return null;
+}
 
 const styles = `
   @keyframes fadeInUp {
@@ -79,6 +99,8 @@ type FormData = {
   bairroDescricao: string;
   cidadeNome: string;
   estadoSigla: string;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 const initialForm: FormData = {
@@ -87,6 +109,7 @@ const initialForm: FormData = {
   descricao: '', fotosImovel: [],
   cep: '', ruaNome: '', numero: '', complemento: '',
   bairroDescricao: '', cidadeNome: '', estadoSigla: '',
+  latitude: null, longitude: null,
 };
 
 export default function CadastroImovelPage() {
@@ -104,39 +127,41 @@ export default function CadastroImovelPage() {
     clienteService.getAll().then(setClientes).catch(console.error);
   }, []);
 
-  const [uploadingFoto, setUploadingFoto] = useState(false);
-  const [uploadError, setUploadError] = useState('');
+  const [fotoFiles, setFotoFiles] = useState<File[]>([]);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-15.13, -53.19]);
+  const [mapZoom, setMapZoom]     = useState(4);
+
+  useEffect(() => {
+    const cidade = form.cidadeNome.trim();
+    const estado = form.estadoSigla.trim();
+    if (!cidade || !estado) return;
+    const timer = setTimeout(async () => {
+      try {
+        const rua = form.ruaNome.trim();
+        const q = encodeURIComponent(rua ? `${rua}, ${cidade}, ${estado}, Brasil` : `${cidade}, ${estado}, Brasil`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
+          headers: { 'Accept-Language': 'pt-BR' },
+        });
+        const data = await res.json() as { lat: string; lon: string }[];
+        if (data.length > 0) {
+          setMapCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+          setMapZoom(rua ? 15 : 13);
+        }
+      } catch { /* ignore */ }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form.cidadeNome, form.estadoSigla, form.ruaNome]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
     if (files.length === 0) return;
-
-    setUploadingFoto(true);
-    setUploadError('');
-
     for (const file of files) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const token = localStorage.getItem('auth_token');
-        const res = await fetch('http://localhost:8080/upload/foto', {
-          method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: formData,
-        });
-
-        if (!res.ok) throw new Error(`Erro ${res.status}`);
-        const data = await res.json();
-        const url: string = data.url ?? data.path ?? data.fileName;
-        setForm(f => ({ ...f, fotosImovel: [...f.fotosImovel, url] }));
-      } catch (err) {
-        setUploadError('Erro ao enviar foto. Verifique se o backend tem o endpoint /upload/foto.');
-      }
+      const previewUrl = URL.createObjectURL(file);
+      setForm(f => ({ ...f, fotosImovel: [...f.fotosImovel, previewUrl] }));
+      setFotoFiles(prev => [...prev, file]);
     }
-
-    setUploadingFoto(false);
   };
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState('');
@@ -182,8 +207,11 @@ export default function CadastroImovelPage() {
     setForm(f => ({ ...f, valorAvaliacao: masked }));
   };
 
-  const removerFoto = (i: number) =>
+  const removerFoto = (i: number) => {
+    URL.revokeObjectURL(form.fotosImovel[i]);
     setForm(f => ({ ...f, fotosImovel: f.fotosImovel.filter((_, idx) => idx !== i) }));
+    setFotoFiles(prev => prev.filter((_, idx) => idx !== i));
+  };
 
   const handleSubmit = async () => {
     setError('');
@@ -209,8 +237,28 @@ export default function CadastroImovelPage() {
 
     setLoading(true);
     try {
-      const toInt  = (v: string) => parseInt(v.replace(/\D/g, ''), 10) || 0;
-      const toNum  = (v: string) => parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
+      const toInt = (v: string) => parseInt(v.replace(/\D/g, ''), 10) || 0;
+      const toNum = (v: string) => parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
+
+      // Upload das fotos pendentes antes de salvar
+      const BASE_URL = (import.meta as { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+      const token = localStorage.getItem('auth_token');
+      const fotoUrls: string[] = [];
+      for (const file of fotoFiles) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(`${BASE_URL}/api/upload`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd,
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(errBody.error ?? `Erro ao enviar foto: ${res.status}`);
+        }
+        const data = await res.json() as { url?: string; path?: string; fileName?: string };
+        fotoUrls.push(data.url ?? data.path ?? data.fileName ?? '');
+      }
 
       const payload = {
         tipoImovel:       form.tipoImovel,
@@ -223,7 +271,9 @@ export default function CadastroImovelPage() {
         numeroMatricula:  toInt(form.numeroMatricula),
         cartorioRegistro: form.cartorioRegistro,
         descricao:        form.descricao || null,
-        fotosImovel:      form.fotosImovel,
+        fotosImovel:      fotoUrls,
+        latitude:         form.latitude,
+        longitude:        form.longitude,
         etapa:            'CADASTRO',
         status:           'DISPONIVEL',
         clienteId:        clienteId || null,
@@ -337,7 +387,14 @@ export default function CadastroImovelPage() {
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                          {[['Apartamento','Apartamento'],['Casa','Casa'],['Comercial','Comercial / Sala'],['Terreno','Terreno'],['Galpao','Galpão'],['Rural','Propriedade Rural']].map(([v,l]) => (
+                          {[
+                            ['Apartamento',      'Apartamento'],
+                            ['Casa',             'Casa'],
+                            ['Comercial/sala',   'Comercial / Sala'],
+                            ['Terreno',          'Terreno'],
+                            ['Galpão/Armazém',   'Galpão / Armazém'],
+                            ['Propriedade Rural','Propriedade Rural'],
+                          ].map(([v,l]) => (
                             <SelectItem key={v} value={v}>{l}</SelectItem>
                           ))}
                         </SelectContent>
@@ -409,18 +466,10 @@ export default function CadastroImovelPage() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingFoto}
                         className="upload-area w-full flex items-center justify-center gap-2 py-4 text-sm font-medium"
-                        style={{ opacity: uploadingFoto ? 0.7 : 1, cursor: uploadingFoto ? 'not-allowed' : 'pointer' }}
                       >
-                        {uploadingFoto
-                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
-                          : <><Upload className="h-4 w-4" /> Selecionar arquivo do computador</>
-                        }
+                        <Upload className="h-4 w-4" /> Selecionar arquivo do computador
                       </button>
-                      {uploadError && (
-                        <p className="text-xs" style={{ color: 'var(--ailos-vermelho-500)' }}>{uploadError}</p>
-                      )}
 
                       {/* Preview das fotos */}
                       {form.fotosImovel.length > 0 && (
@@ -548,6 +597,42 @@ export default function CadastroImovelPage() {
                       </p>
                     ))}
                   </div>
+
+                  {/* Mapa de localização */}
+                  <div>
+                    <label className={labelCls} style={{ color: 'var(--foreground)' }}>
+                      Ponto no mapa
+                      <span className="ml-2 text-xs font-normal" style={{ color: 'var(--ailos-cinza-500)' }}>
+                        (clique no mapa para marcar a localização exata do imóvel)
+                      </span>
+                    </label>
+                    {form.latitude && form.longitude && (
+                      <p className="text-xs mb-2 font-medium" style={{ color: 'var(--primary)' }}>
+                        Marcado: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+                        <button
+                          type="button"
+                          className="ml-2 underline"
+                          style={{ color: '#ef4444' }}
+                          onClick={() => setForm(f => ({ ...f, latitude: null, longitude: null }))}
+                        >
+                          remover
+                        </button>
+                      </p>
+                    )}
+                    <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+                      <MapContainer center={[-15.13, -53.19]} zoom={4} style={{ height: '320px', width: '100%' }} scrollWheelZoom>
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        />
+                        <MapRecenter center={mapCenter} zoom={mapZoom} />
+                        <LocationPicker onPick={(lat, lng) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))} />
+                        {form.latitude && form.longitude && (
+                          <Marker position={[form.latitude, form.longitude]} />
+                        )}
+                      </MapContainer>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="flex justify-between">
@@ -652,7 +737,7 @@ export default function CadastroImovelPage() {
                     {[
                       ['Tipo',         form.tipoImovel || '—'],
                       ['Área',         form.area ? `${form.area} m²` : '—'],
-                      ['Avaliação',    form.valorAvaliacao ? `R$ ${Number(form.valorAvaliacao).toLocaleString('pt-BR')}` : '—'],
+                      ['Avaliação',    form.valorAvaliacao ? `R$ ${form.valorAvaliacao}` : '—'],
                       ['Matrícula',    form.numeroMatricula || '—'],
                       ['Cartório',     form.cartorioRegistro || '—'],
                       ['Endereço',     form.cidadeNome ? `${form.cidadeNome} - ${form.estadoSigla}` : '—'],

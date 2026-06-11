@@ -49,6 +49,8 @@ export interface ImovelAPI {
   responsavelId: string | null;
   clienteId: string | null;
   status: ImovelStatus | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const ETAPA_TO_STAGE: Record<ImovelEtapa, FlowStage> = {

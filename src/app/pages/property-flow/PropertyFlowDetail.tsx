@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { Tabs, TabsContent, TabsList } from '../../components/ui/tabs';
-import { ArrowLeft, MapPin, DollarSign, FileText, Building2, Plus, Pencil, X, Save, Loader2, AlertCircle, Scale, Home, Trash2 } from 'lucide-react';
+import { ArrowLeft, MapPin, DollarSign, FileText, Building2, Plus, Pencil, X, Save, Loader2, AlertCircle, Scale, Home, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { imovelService, enderecoLabel, imovelLabel, etapaToFlowStage, etapaLabel, STATUS_CONFIG, type ImovelAPI, type ImovelEtapa, type ImovelStatus } from '../../../services/imovelService';
 import { negociacaoService, type NegociacaoAPI, type NegociacaoPayload } from '../../../services/negociacaoService';
 import { clienteService, type ClienteAPI } from '../../../services/clienteService';
-import { documentoService, type DocumentoAPI } from '../../../services/documentoService';
+import { documentoService, TIPO_DOCUMENTO_LABELS, type DocumentoAPI, type TipoDocumento } from '../../../services/documentoService';
 import { despesaService, type DespesaAPI, type DespesaPayload } from '../../../services/despesaService';
 import { leilaoService, LEILAO_STATUS_CONFIG, type LeilaoAPI, type LeilaoPayload, type LeilaoStatus } from '../../../services/leilaoService';
 import { ocorrenciaService, type OcorrenciaAPI } from '../../../services/ocorrenciaService';
@@ -30,6 +30,7 @@ export default function PropertyFlowDetail() {
   const [imovel, setImovel]           = useState<ImovelAPI | null>(null);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('resumo');
+  const [selectedFotoIdx, setSelectedFotoIdx] = useState(0);
 
   type LeilaoForm = { numero: string; data: string; valorMinimo: string; status: LeilaoStatus };
   const emptyLeilao: LeilaoForm = { numero: '', data: '', valorMinimo: '', status: '1º LEILÃO' };
@@ -42,8 +43,13 @@ export default function PropertyFlowDetail() {
   const [leilaoDeleting, setLeilaoDeleting] = useState<string | null>(null);
   const [leilaoError, setLeilaoError]   = useState('');
 
-  const [documentos, setDocumentos]   = useState<DocumentoAPI[]>([]);
-  const [docLoading, setDocLoading]   = useState(false);
+  const [documentos, setDocumentos]       = useState<DocumentoAPI[]>([]);
+  const [docLoading, setDocLoading]       = useState(false);
+  const [showDocForm, setShowDocForm]     = useState(false);
+  const [docTipo, setDocTipo]             = useState<TipoDocumento>('MATRICULA_ATUALIZADA');
+  const [docUploading, setDocUploading]   = useState(false);
+  const [docDeleting, setDocDeleting]     = useState<string | null>(null);
+  const [docError, setDocError]           = useState('');
 
   type DespesaForm = { categoria: string; data: string; valor: string; aprovado: boolean };
   const emptyDespesa: DespesaForm = { categoria: '', data: '', valor: '', aprovado: false };
@@ -268,6 +274,37 @@ export default function PropertyFlowDetail() {
     }
   };
 
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setDocError('');
+    setDocUploading(true);
+    try {
+      const url = await documentoService.upload(file);
+      const doc = await documentoService.create(id!, { tipo: docTipo, nomeArquivo: file.name, url });
+      setDocumentos(prev => [doc, ...prev]);
+      setShowDocForm(false);
+    } catch (err) {
+      setDocError(err instanceof Error ? err.message : 'Erro ao enviar documento.');
+    } finally {
+      setDocUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDocDelete = async (doc: DocumentoAPI) => {
+    if (!confirm(`Excluir o documento "${doc.nomeArquivo}"?`)) return;
+    setDocDeleting(doc.id);
+    try {
+      await documentoService.delete(id!, doc.id);
+      setDocumentos(prev => prev.filter(d => d.id !== doc.id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao excluir.');
+    } finally {
+      setDocDeleting(null);
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
     setDocLoading(true);
@@ -437,8 +474,9 @@ export default function PropertyFlowDetail() {
 
   const cardStyle = { background: 'var(--card)', borderColor: 'var(--border)' };
   const sectionHdr = { borderColor: 'var(--border)', background: 'var(--muted)' };
-  const foto = imovel.fotosImovel?.[0] ?? null;
-  const e = imovel.enderecoDTO;
+  const fotos = imovel?.fotosImovel ?? [];
+  const selectedFoto = fotos[selectedFotoIdx] ?? null;
+  const e = imovel?.enderecoDTO;
 
   return (
     <>
@@ -459,12 +497,52 @@ export default function PropertyFlowDetail() {
           {/* Hero */}
           <div className="rounded-2xl overflow-hidden a-fade-up border" style={{ ...cardStyle, boxShadow: '0 4px 20px -6px rgba(0,0,0,0.1)' }}>
             <div className="flex flex-col lg:flex-row">
-              <div className="lg:w-64 h-52 lg:h-auto overflow-hidden flex-shrink-0 bg-gray-100">
-                {foto ? (
-                  <img src={foto} alt="foto" className="hero-img w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--ailos-azul-50)' }}>
-                    <Building2 className="w-16 h-16" style={{ color: 'var(--primary)' }} />
+              <div className="lg:w-72 flex-shrink-0 flex flex-col">
+                {/* Foto principal */}
+                <div className="relative h-56 lg:h-64 overflow-hidden bg-gray-100 flex-shrink-0">
+                  {selectedFoto ? (
+                    <img src={selectedFoto} alt={`Foto ${selectedFotoIdx + 1}`} className="hero-img w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--ailos-azul-50)' }}>
+                      <Building2 className="w-16 h-16" style={{ color: 'var(--primary)' }} />
+                    </div>
+                  )}
+                  {fotos.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setSelectedFotoIdx(i => (i - 1 + fotos.length) % fotos.length)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{ background: 'rgba(0,0,0,0.45)', color: '#fff' }}
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedFotoIdx(i => (i + 1) % fotos.length)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{ background: 'rgba(0,0,0,0.45)', color: '#fff' }}
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                      <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold"
+                        style={{ background: 'rgba(0,0,0,0.5)', color: '#fff' }}>
+                        {selectedFotoIdx + 1}/{fotos.length}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {/* Thumbnails */}
+                {fotos.length > 1 && (
+                  <div className="flex gap-1.5 p-2 overflow-x-auto border-t" style={{ borderColor: 'var(--border)', background: 'var(--muted)' }}>
+                    {fotos.map((f, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedFotoIdx(i)}
+                        className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all"
+                        style={{ borderColor: i === selectedFotoIdx ? 'var(--primary)' : 'transparent', opacity: i === selectedFotoIdx ? 1 : 0.6 }}
+                      >
+                        <img src={f} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -1188,14 +1266,69 @@ export default function PropertyFlowDetail() {
                     {documentos.length} documento{documentos.length !== 1 ? 's' : ''} anexado{documentos.length !== 1 ? 's' : ''}
                   </p>
                   <button
-                    disabled
+                    onClick={() => { setShowDocForm(v => !v); setDocError(''); }}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-                    style={{ background: 'var(--primary)', opacity: 0.5, cursor: 'not-allowed' }}
-                    title="Upload de documentos disponível em breve"
+                    style={{ background: 'var(--primary)' }}
                   >
                     <Plus className="h-4 w-4" /> Adicionar Documento
                   </button>
                 </div>
+
+                {showDocForm && (
+                  <div className="rounded-2xl border overflow-hidden" style={cardStyle}>
+                    <div className="flex items-center justify-between px-5 py-4 border-b" style={sectionHdr}>
+                      <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Novo Documento</p>
+                      <button onClick={() => setShowDocForm(false)} style={{ color: 'var(--muted-foreground)' }}>
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <label className="text-sm font-semibold mb-1.5 block" style={{ color: 'var(--foreground)' }}>
+                          Tipo do Documento <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <select
+                          className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none"
+                          style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                          value={docTipo}
+                          onChange={e => setDocTipo(e.target.value as TipoDocumento)}
+                        >
+                          {(Object.keys(TIPO_DOCUMENTO_LABELS) as TipoDocumento[]).map(t => (
+                            <option key={t} value={t}>{TIPO_DOCUMENTO_LABELS[t]}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {docError && (
+                        <div className="flex items-start gap-2 rounded-xl px-4 py-3 border"
+                          style={{ background: 'var(--ailos-vermelho-50)', borderColor: 'var(--ailos-vermelho-100)' }}>
+                          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ailos-vermelho-500)' }} />
+                          <p className="text-sm" style={{ color: 'var(--ailos-vermelho-500)' }}>{docError}</p>
+                        </div>
+                      )}
+
+                      <label
+                        className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 border-dashed text-sm font-medium cursor-pointer transition-all"
+                        style={{
+                          borderColor: docUploading ? 'var(--primary)' : 'var(--border)',
+                          color: 'var(--primary)',
+                          background: docUploading ? 'var(--ailos-azul-50)' : 'transparent',
+                          cursor: docUploading ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {docUploading
+                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+                          : <><FileText className="h-4 w-4" /> Selecionar arquivo</>}
+                        <input
+                          type="file"
+                          className="hidden"
+                          disabled={docUploading}
+                          onChange={handleDocUpload}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
 
                 {docLoading ? (
                   <div className="flex items-center justify-center py-12">
@@ -1207,40 +1340,41 @@ export default function PropertyFlowDetail() {
                       <FileText className="w-7 h-7" style={{ color: 'var(--primary)' }} />
                     </div>
                     <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Nenhum documento anexado</p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--ailos-cinza-500)' }}>
-                      O upload de documentos estará disponível em breve.
-                    </p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--ailos-cinza-500)' }}>Clique em "Adicionar Documento" para enviar.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {documentos.map(doc => (
                       <div key={doc.id} className="rounded-2xl border p-4 flex items-center justify-between gap-4" style={cardStyle}>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--ailos-azul-50)' }}>
                             <FileText className="w-5 h-5" style={{ color: 'var(--primary)' }} />
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{doc.nome}</p>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{doc.nomeArquivo}</p>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-                              {doc.tipo}
-                              {doc.dataUpload && ` · ${new Date(doc.dataUpload).toLocaleDateString('pt-BR')}`}
-                              {doc.uploadPor && ` · ${doc.uploadPor}`}
+                              {TIPO_DOCUMENTO_LABELS[doc.tipo] ?? doc.tipo}
+                              {doc.uploadedAt && ` · ${new Date(doc.uploadedAt).toLocaleDateString('pt-BR')}`}
                             </p>
                           </div>
                         </div>
-                        {doc.url && (
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold flex-shrink-0"
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <a href={doc.url} target="_blank" rel="noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold"
                             style={{ color: 'var(--primary)', borderColor: 'var(--border)', background: 'var(--card)', transition: 'background 0.15s' }}
                             onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--ailos-azul-50)'}
-                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--card)'}
-                          >
+                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--card)'}>
                             Abrir
                           </a>
-                        )}
+                          <button onClick={() => handleDocDelete(doc)} disabled={docDeleting === doc.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold"
+                            style={{ color: 'var(--ailos-vermelho-500)', borderColor: 'var(--border)', background: 'var(--card)', transition: 'background 0.15s', opacity: docDeleting === doc.id ? 0.6 : 1 }}
+                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--ailos-vermelho-50)'}
+                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--card)'}>
+                            {docDeleting === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                            Excluir
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
