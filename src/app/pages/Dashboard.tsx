@@ -261,29 +261,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Lista recente */}
-      {imoveis.length > 0 && (
-        <div className="rounded-xl p-6" style={cardStyle}>
-          <p className="text-base font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Imóveis Cadastrados</p>
-          <div className="space-y-3">
-            {imoveis.slice(0, 5).map(imovel => (
-              <div key={imovel.id} className="flex items-center justify-between py-3 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                    {imovel.tipoImovel} — {imovel.enderecoDTO?.cidadeNome ?? '—'}/{imovel.enderecoDTO?.estadoSigla ?? '—'}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-                    {imovel.area} m² · {imovel.quartos} quartos · Matrícula {imovel.numeroMatricula}
-                  </p>
-                </div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>
-                  R$ {(imovel.valorAvaliacao ?? 0).toLocaleString('pt-BR')}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {total === 0 && (
         <div className="rounded-xl p-12 text-center" style={cardStyle}>

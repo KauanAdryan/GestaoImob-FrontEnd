@@ -47,7 +47,7 @@ export default function ImovelMap({ imoveis, isDark, height = 420 }: { imoveis: 
   const withoutCoords = imoveis.filter(i => i.latitude == null || i.longitude == null);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', zIndex: 0 }}>
       {!ready && (
         <div className="absolute inset-0 z-[1000] flex items-center justify-center"
           style={{ background: isDark ? 'rgba(15,18,28,0.8)' : 'rgba(255,255,255,0.8)' }}>

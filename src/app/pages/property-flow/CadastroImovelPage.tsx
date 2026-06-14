@@ -145,8 +145,11 @@ export default function CadastroImovelPage() {
         });
         const data = await res.json() as { lat: string; lon: string }[];
         if (data.length > 0) {
-          setMapCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          setMapCenter([lat, lng]);
           setMapZoom(rua ? 15 : 13);
+          setForm(f => ({ ...f, latitude: lat, longitude: lng }));
         }
       } catch { /* ignore */ }
     }, 800);
@@ -603,7 +606,7 @@ export default function CadastroImovelPage() {
                     <label className={labelCls} style={{ color: 'var(--foreground)' }}>
                       Ponto no mapa
                       <span className="ml-2 text-xs font-normal" style={{ color: 'var(--ailos-cinza-500)' }}>
-                        (clique no mapa para marcar a localização exata do imóvel)
+                        (pin posicionado pelo endereço — clique para ajustar)
                       </span>
                     </label>
                     {form.latitude && form.longitude && (
