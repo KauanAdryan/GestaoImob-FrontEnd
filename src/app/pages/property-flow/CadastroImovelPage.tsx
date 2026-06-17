@@ -13,6 +13,7 @@ import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { api } from '../../../services/api';
 import { clienteService, type ClienteAPI } from '../../../services/clienteService';
+import { documentoService, TIPO_DOCUMENTO_LABELS, type TipoDocumento } from '../../../services/documentoService';
 
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl });
@@ -80,6 +81,15 @@ const styles = `
 const labelCls = "text-sm font-semibold mb-1.5 block";
 const req = <span style={{ color: '#ef4444' }}>*</span>;
 
+const DOCUMENTOS_CADASTRO: { tipo: TipoDocumento; obrigatorio: boolean }[] = [
+  { tipo: 'MATRICULA_ATUALIZADA',             obrigatorio: true },
+  { tipo: 'LAUDO_AVALIACAO',                  obrigatorio: true },
+  { tipo: 'TERMO_CONSOLIDACAO_PROPRIEDADE',   obrigatorio: true },
+  { tipo: 'CERTIDAO_DEBITOS_MUNICIPAIS_IPTU', obrigatorio: false },
+  { tipo: 'CERTIDAO_DEBITOS_ESTADUAIS',       obrigatorio: false },
+  { tipo: 'CERTIDAO_ONUS_REAIS',              obrigatorio: false },
+];
+
 type FormData = {
   tipoImovel: string;
   area: string;
@@ -128,6 +138,30 @@ export default function CadastroImovelPage() {
   }, []);
 
   const [fotoFiles, setFotoFiles] = useState<File[]>([]);
+
+  const [docFiles, setDocFiles] = useState<Partial<Record<TipoDocumento, File>>>({});
+  const [docTipoAtivo, setDocTipoAtivo] = useState<TipoDocumento | null>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerDocUpload = (tipo: TipoDocumento) => {
+    setDocTipoAtivo(tipo);
+    docInputRef.current?.click();
+  };
+
+  const handleDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !docTipoAtivo) return;
+    setDocFiles(prev => ({ ...prev, [docTipoAtivo]: file }));
+  };
+
+  const removerDoc = (tipo: TipoDocumento) => {
+    setDocFiles(prev => {
+      const next = { ...prev };
+      delete next[tipo];
+      return next;
+    });
+  };
 
   const [mapCenter, setMapCenter] = useState<[number, number]>([-15.13, -53.19]);
   const [mapZoom, setMapZoom]     = useState(4);
@@ -238,6 +272,15 @@ export default function CadastroImovelPage() {
       return;
     }
 
+    // Validação dos documentos obrigatórios
+    const missingDocs = DOCUMENTOS_CADASTRO
+      .filter(d => d.obrigatorio && !docFiles[d.tipo])
+      .map(d => TIPO_DOCUMENTO_LABELS[d.tipo]);
+    if (missingDocs.length > 0) {
+      setError(`Envie os documentos obrigatórios: ${missingDocs.join(', ')}.`);
+      return;
+    }
+
     setLoading(true);
     try {
       const toInt = (v: string) => parseInt(v.replace(/\D/g, ''), 10) || 0;
@@ -291,7 +334,16 @@ export default function CadastroImovelPage() {
           estadoSigla:     form.estadoSigla,
         },
       };
-      await api.post('/imoveis', payload);
+      const imovelCriado = await api.post<{ id: string }>('/imoveis', payload);
+
+      // Upload dos documentos selecionados
+      for (const doc of DOCUMENTOS_CADASTRO) {
+        const file = docFiles[doc.tipo];
+        if (!file) continue;
+        const url = await documentoService.upload(file);
+        await documentoService.create(imovelCriado.id, { tipo: doc.tipo, nomeArquivo: file.name, url });
+      }
+
       navigate('/gestao-bens');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao cadastrar imóvel.');
@@ -591,16 +643,6 @@ export default function CadastroImovelPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl" style={{ background: 'var(--ailos-azul-50)', border: '1px solid var(--border)' }}>
-                    <h4 className="font-semibold text-sm mb-2" style={{ color: 'var(--foreground)' }}>ℹ️ Informações de Localização</h4>
-                    {['Verifique se o endereço está completo e correto','O CEP será usado para consultas de IPTU e certidões','Certifique-se que o número está de acordo com a matrícula'].map(tip => (
-                      <p key={tip} className="text-sm flex items-start gap-2 mt-1" style={{ color: 'var(--primary)' }}>
-                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--primary)', display: 'inline-block' }} />
-                        {tip}
-                      </p>
-                    ))}
-                  </div>
-
                   {/* Mapa de localização */}
                   <div>
                     <label className={labelCls} style={{ color: 'var(--foreground)' }}>
@@ -661,40 +703,58 @@ export default function CadastroImovelPage() {
                 </div>
                 <div className="p-6 space-y-4">
                   <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Documentos Obrigatórios</p>
-                  {[
-                    { id: 1, nome: 'Matrícula Atualizada do Imóvel',        obrigatorio: true },
-                    { id: 2, nome: 'Laudo de Avaliação',                    obrigatorio: true },
-                    { id: 3, nome: 'Termo de Consolidação de Propriedade',  obrigatorio: true },
-                    { id: 4, nome: 'Certidão de Débitos Municipais (IPTU)', obrigatorio: false },
-                    { id: 5, nome: 'Certidão de Débitos Estaduais',         obrigatorio: false },
-                    { id: 6, nome: 'Certidão de Ônus Reais',                obrigatorio: false },
-                  ].map(doc => (
-                    <div key={doc.id} className="doc-row flex items-center justify-between p-4 rounded-xl border"
-                      style={{
-                        background:  doc.obrigatorio ? 'var(--ailos-amarelo-50)' : 'var(--card)',
-                        borderColor: doc.obrigatorio ? 'var(--ailos-amarelo-100)' : 'var(--border)',
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                          style={{ background: doc.obrigatorio ? 'var(--ailos-amarelo-100)' : 'var(--ailos-azul-50)' }}>
-                          <FileText className="w-4 h-4" style={{ color: doc.obrigatorio ? '#d97706' : 'var(--primary)' }} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{doc.nome}</p>
-                          {doc.obrigatorio && <span className="text-xs font-semibold" style={{ color: '#d97706' }}>Obrigatório</span>}
-                        </div>
-                      </div>
-                      <button
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold"
-                        style={{ color: 'var(--primary)', borderColor: 'var(--border)', background: 'var(--card)', transition: 'background 0.15s' }}
-                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--ailos-azul-50)'}
-                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--card)'}
+                  <input
+                    ref={docInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleDocFileSelect}
+                  />
+                  {DOCUMENTOS_CADASTRO.map(doc => {
+                    const file = docFiles[doc.tipo];
+                    return (
+                      <div key={doc.tipo} className="doc-row flex items-center justify-between p-4 rounded-xl border"
+                        style={{
+                          background:  file ? '#E6F7ED' : doc.obrigatorio ? 'var(--ailos-amarelo-50)' : 'var(--card)',
+                          borderColor: file ? '#CCEFDB' : doc.obrigatorio ? 'var(--ailos-amarelo-100)' : 'var(--border)',
+                        }}
                       >
-                        <Upload className="h-3.5 w-3.5" /> Upload
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ background: file ? '#CCEFDB' : doc.obrigatorio ? 'var(--ailos-amarelo-100)' : 'var(--ailos-azul-50)' }}>
+                            {file
+                              ? <Check className="w-4 h-4" style={{ color: '#006829' }} />
+                              : <FileText className="w-4 h-4" style={{ color: doc.obrigatorio ? '#d97706' : 'var(--primary)' }} />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{TIPO_DOCUMENTO_LABELS[doc.tipo]}</p>
+                            {file
+                              ? <p className="text-xs truncate" style={{ color: '#006829' }}>{file.name}</p>
+                              : doc.obrigatorio && <span className="text-xs font-semibold" style={{ color: '#d97706' }}>Obrigatório</span>}
+                          </div>
+                        </div>
+                        {file ? (
+                          <button
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold flex-shrink-0"
+                            style={{ color: '#ef4444', borderColor: 'var(--border)', background: 'var(--card)' }}
+                            onClick={() => removerDoc(doc.tipo)}
+                          >
+                            <X className="h-3.5 w-3.5" /> Remover
+                          </button>
+                        ) : (
+                          <button
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold flex-shrink-0"
+                            style={{ color: 'var(--primary)', borderColor: 'var(--border)', background: 'var(--card)', transition: 'background 0.15s' }}
+                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--ailos-azul-50)'}
+                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--card)'}
+                            onClick={() => triggerDocUpload(doc.tipo)}
+                          >
+                            <Upload className="h-3.5 w-3.5" /> Upload
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -750,13 +810,6 @@ export default function CadastroImovelPage() {
                         <p className="font-semibold" style={{ color: 'var(--foreground)' }}>{v}</p>
                       </div>
                     ))}
-                  </div>
-
-                  <div className="flex items-start gap-3 p-4 rounded-xl mt-2" style={{ background: 'var(--ailos-azul-50)', border: '1px solid var(--border)' }}>
-                    <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                      Ao cadastrar, o imóvel entrará automaticamente na etapa de <strong>Leilão</strong>. Você poderá registrar os leilões na sequência.
-                    </p>
                   </div>
 
                   {error && (

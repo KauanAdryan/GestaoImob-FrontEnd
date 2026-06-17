@@ -32,6 +32,7 @@ export type ImovelStatus = 'DISPONIVEL' | 'EM_NEGOCIACAO' | 'VENDIDO' | 'INDISPO
 
 export interface ImovelAPI {
   id: string;
+  createdAt: string;
   tipoImovel: string;
   area: number;
   quartos: number;

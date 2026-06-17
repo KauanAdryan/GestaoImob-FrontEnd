@@ -22,6 +22,27 @@ const ETAPAS: ImovelEtapa[] = [
   'JURIDICO','COMERCIAL','VENDA','POS_VENDA',
 ];
 
+const SLA_DIAS: Record<string, number> = {
+  CADASTRO: 30, LEILAO: 180, AVERBACAO: 60,
+  NEGOCIACAO_AMIGAVEL: 90, NEGOCIACAO_NAO_AMIGAVEL: 120,
+  JURIDICO: 180, MANUTENCAO_PRECIFICACAO: 45, COMERCIAL: 90, VENDA: 60, POS_VENDA: 30,
+};
+type SLABadgeStatus = 'no-prazo' | 'proximo-vencimento' | 'vencido';
+const SLA_BADGE_CFG: Record<SLABadgeStatus, { label: string; color: string; bg: string; border: string }> = {
+  'no-prazo':           { label: 'Em Dia',  color: '#006829', bg: '#E6F7ED', border: '#CCEFDB' },
+  'proximo-vencimento': { label: 'Atenção', color: '#CC8300', bg: '#FFF4E6', border: '#FFE9CC' },
+  'vencido':            { label: 'Vencido', color: '#dc2626', bg: '#FEF2F2', border: '#FECACA' },
+};
+function calcSLA(imovel: ImovelAPI): { dias: number; limite: number; status: SLABadgeStatus } {
+  const etapa  = imovel.etapa ?? 'CADASTRO';
+  const limite = SLA_DIAS[etapa] ?? 60;
+  const dataRef = imovel.dataAvaliacao ? new Date(imovel.dataAvaliacao) : new Date();
+  const dias   = Math.max(0, Math.floor((Date.now() - dataRef.getTime()) / 86400000));
+  const pct    = limite > 0 ? dias / limite : 0;
+  const status: SLABadgeStatus = pct >= 1 ? 'vencido' : pct >= 0.75 ? 'proximo-vencimento' : 'no-prazo';
+  return { dias, limite, status };
+}
+
 export default function PropertyFlowList() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -71,7 +92,7 @@ export default function PropertyFlowList() {
     },
     {
       label: 'SLA Vencido',
-      value: 0,
+      value: imoveis.filter(i => calcSLA(i).status === 'vencido').length,
       icon:  AlertTriangle,
       color: '#ef4444',
       bg:    '#FEF2F2',
@@ -169,10 +190,10 @@ export default function PropertyFlowList() {
 
             <Select value={filterStatus} onValueChange={v => setFilterStatus(v as ImovelStatus | 'todos')}>
               <SelectTrigger className="w-48 rounded-xl font-semibold" style={{ borderColor: 'var(--border)' }}>
-                <SelectValue placeholder="Todos os SLAs" />
+                <SelectValue placeholder="Todos os Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos os SLAs</SelectItem>
+                <SelectItem value="todos">Todos os Status</SelectItem>
                 {(Object.keys(STATUS_CONFIG) as ImovelStatus[]).map(s => (
                   <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
                 ))}
@@ -230,7 +251,7 @@ export default function PropertyFlowList() {
             <Table>
               <TableHeader>
                 <TableRow style={{ background: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
-                  {['Imóvel', 'Tipo', 'Etapa', 'Valor de Avaliação', 'Matrícula', ''].map((h, i) => (
+                  {['Imóvel', 'Tipo', 'Etapa', 'SLA', 'Valor de Avaliação', 'Matrícula', ''].map((h, i) => (
                     <TableHead key={i} className="text-xs font-semibold uppercase tracking-wider"
                       style={{ color: 'var(--muted-foreground)' }}>
                       {h}
@@ -293,6 +314,27 @@ export default function PropertyFlowList() {
                       ) : (
                         <span style={{ color: 'var(--ailos-cinza-400)' }}>—</span>
                       )}
+                    </TableCell>
+
+                    <TableCell>
+                      {(() => {
+                        const { dias, limite, status } = calcSLA(imovel);
+                        const cfg = SLA_BADGE_CFG[status];
+                        const diasRestantes = limite - dias;
+                        return (
+                          <div>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold border"
+                              style={{ background: cfg.bg, color: cfg.color, borderColor: cfg.border }}>
+                              {cfg.label}
+                            </span>
+                            <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                              {diasRestantes < 0
+                                ? `${Math.abs(diasRestantes)}d vencido`
+                                : `${diasRestantes}d restantes`}
+                            </p>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
 
                     <TableCell className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>

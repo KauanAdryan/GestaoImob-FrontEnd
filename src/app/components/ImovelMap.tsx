@@ -56,13 +56,6 @@ export default function ImovelMap({ imoveis, isDark, height = 420 }: { imoveis: 
         </div>
       )}
 
-      {withoutCoords.length > 0 && (
-        <p className="text-xs mb-2" style={{ color: 'var(--ailos-cinza-500)' }}>
-          {withoutCoords.length} imóvel(eis) sem localização definida não {withoutCoords.length === 1 ? 'aparece' : 'aparecem'} no mapa.
-          Edite o cadastro para adicionar o ponto.
-        </p>
-      )}
-
       <div className="rounded-xl overflow-hidden border" style={{ border: '1px solid var(--border)' }}>
         <MapContainer
           center={[-15.13, -53.19]}

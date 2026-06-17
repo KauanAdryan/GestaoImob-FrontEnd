@@ -9,7 +9,20 @@ import { documentoService, TIPO_DOCUMENTO_LABELS, type DocumentoAPI, type TipoDo
 import { despesaService, type DespesaAPI, type DespesaPayload } from '../../../services/despesaService';
 import { leilaoService, LEILAO_STATUS_CONFIG, type LeilaoAPI, type LeilaoPayload, type LeilaoStatus } from '../../../services/leilaoService';
 import { ocorrenciaService, type OcorrenciaAPI } from '../../../services/ocorrenciaService';
+import { historicoService, type HistoricoDuracoesResponseDTO } from '../../../services/historicoService';
 import { FlowStepper } from '../../components/property-flow/FlowStepper';
+
+const SLA_DIAS_DETAIL: Record<string, number> = {
+  CADASTRO: 30, LEILAO: 180, AVERBACAO: 60,
+  NEGOCIACAO_AMIGAVEL: 90, NEGOCIACAO_NAO_AMIGAVEL: 120,
+  JURIDICO: 180, MANUTENCAO_PRECIFICACAO: 45, COMERCIAL: 90, VENDA: 60, POS_VENDA: 30,
+};
+const ETAPA_LABELS_DETAIL: Record<string, string> = {
+  CADASTRO: 'Cadastro', LEILAO: 'Leilão', AVERBACAO: 'Averbação',
+  NEGOCIACAO_AMIGAVEL: 'Neg. Amigável', NEGOCIACAO_NAO_AMIGAVEL: 'Neg. Não Amigável',
+  JURIDICO: 'Jurídico', MANUTENCAO_PRECIFICACAO: 'Manutenção/Precif.',
+  COMERCIAL: 'Comercial', VENDA: 'Venda', POS_VENDA: 'Pós-Venda',
+};
 
 const styles = `
   @keyframes fadeInUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
@@ -76,6 +89,8 @@ export default function PropertyFlowDetail() {
   const [etapaSaving, setEtapaSaving]     = useState(false);
   const [etapaError, setEtapaError]       = useState('');
 
+  const [historico, setHistorico] = useState<HistoricoDuracoesResponseDTO | null>(null);
+
   const [ocorrencias, setOcorrencias]         = useState<OcorrenciaAPI[]>([]);
   const [ocorrLoading, setOcorrLoading]       = useState(false);
   const [showOcorrForm, setShowOcorrForm]     = useState(false);
@@ -98,6 +113,13 @@ export default function PropertyFlowDetail() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    historicoService.getDurations(id)
+      .then(setHistorico)
+      .catch(() => setHistorico(null));
   }, [id]);
 
   useEffect(() => {
@@ -892,6 +914,65 @@ export default function PropertyFlowDetail() {
                     </div>
                     <div className="p-6">
                       <p className="text-sm" style={{ color: 'var(--foreground)' }}>{imovel.descricao}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Histórico SLA por Etapa */}
+                {historico && historico.duracoes.length > 0 && (
+                  <div className="rounded-2xl border overflow-hidden" style={cardStyle}>
+                    <div className="px-6 py-4 border-b" style={sectionHdr}>
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--ailos-cinza-500)' }}>
+                        Histórico SLA por Etapa
+                      </p>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      {historico.duracoes.map((d, idx) => {
+                        const limite   = SLA_DIAS_DETAIL[d.etapa] ?? 60;
+                        const dias     = Math.round(d.days ?? 0);
+                        const pct      = Math.min(100, Math.round((dias / limite) * 100));
+                        const barColor = pct >= 100 ? '#dc2626' : pct >= 75 ? '#EAB308' : '#16a34a';
+                        const statusCfg = pct >= 100
+                          ? { label: 'Vencido', color: '#dc2626' }
+                          : pct >= 75
+                          ? { label: 'Atenção', color: '#CC8300' }
+                          : { label: 'Em Dia',  color: '#16a34a' };
+                        const isActive = d.endedAt === null;
+                        return (
+                          <div key={idx}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                                  {ETAPA_LABELS_DETAIL[d.etapa] ?? d.etapa}
+                                </p>
+                                {isActive && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
+                                    style={{ background: 'var(--ailos-azul-50)', color: 'var(--primary)' }}>
+                                    Atual
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold" style={{ color: statusCfg.color }}>
+                                  {statusCfg.label}
+                                </span>
+                                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                                  {dias}d / {limite}d
+                                </span>
+                              </div>
+                            </div>
+                            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--muted)' }}>
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="pt-3 border-t flex justify-between text-sm" style={{ borderColor: 'var(--border)' }}>
+                        <span style={{ color: 'var(--muted-foreground)' }}>Tempo total no processo</span>
+                        <span className="font-semibold" style={{ color: 'var(--foreground)' }}>
+                          {Math.round(historico.totalDays ?? 0)} dias
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
