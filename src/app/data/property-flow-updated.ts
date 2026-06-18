@@ -37,16 +37,9 @@ export const flowStagesConfig: StageConfig[] = [
     ],
   },
   {
-    id: 'averbacao',
-    label: 'Averbação',
-    ordem: 3,
-    descricao: 'Registro da averbação na matrícula',
-    documentosObrigatorios: ['Matrícula atualizada'],
-  },
-  {
     id: 'negociacao-amigavel',
     label: 'Negociação Amigável',
-    ordem: 4,
+    ordem: 3,
     descricao: 'Planner de negociação amigável',
     subEtapas: [
       { id: 'tentativa-contato', label: 'Tentativa de Contato' },
@@ -59,7 +52,7 @@ export const flowStagesConfig: StageConfig[] = [
   {
     id: 'negociacao-nao-amigavel',
     label: 'Negociação Não Amigável',
-    ordem: 5,
+    ordem: 4,
     descricao: 'Planner de negociação litigiosa',
     subEtapas: [
       { id: 'terceiro-leilao', label: '3º Leilão (em avaliação)' },
@@ -70,14 +63,14 @@ export const flowStagesConfig: StageConfig[] = [
   {
     id: 'juridico',
     label: 'Jurídico',
-    ordem: 6,
+    ordem: 5,
     descricao: 'Acompanhamento processual e liminares',
     documentosObrigatorios: ['Documentação do processo'],
   },
   {
     id: 'manutencao-precificacao',
     label: 'Manutenção/Precificação',
-    ordem: 7,
+    ordem: 6,
     descricao: 'Vistoria, manutenção e definição de valor de venda',
     documentosObrigatorios: [
       'Fotos vistoria',
@@ -88,7 +81,7 @@ export const flowStagesConfig: StageConfig[] = [
   {
     id: 'comercial',
     label: 'Comercial',
-    ordem: 8,
+    ordem: 7,
     descricao: 'Publicação e gestão de propostas',
     documentosObrigatorios: [
       'Contrato imobiliária',
@@ -98,7 +91,7 @@ export const flowStagesConfig: StageConfig[] = [
   {
     id: 'venda',
     label: 'Venda',
-    ordem: 9,
+    ordem: 8,
     descricao: 'Formalização da venda e checklist de entrega',
     documentosObrigatorios: [
       'Promessa compra e venda assinada',
@@ -108,7 +101,7 @@ export const flowStagesConfig: StageConfig[] = [
   {
     id: 'pos-venda',
     label: 'Pós-Venda',
-    ordem: 10,
+    ordem: 9,
     descricao: 'Acompanhamento pós-venda e parcelamento',
     documentosObrigatorios: ['Comprovantes de transferência'],
   },

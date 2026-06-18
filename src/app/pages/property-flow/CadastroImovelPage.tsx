@@ -13,7 +13,7 @@ import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { api } from '../../../services/api';
 import { clienteService, type ClienteAPI } from '../../../services/clienteService';
-import { documentoService, TIPO_DOCUMENTO_LABELS, type TipoDocumento } from '../../../services/documentoService';
+import { documentoService, TIPO_DOCUMENTO_LABELS, DOCUMENTOS_OBRIGATORIOS, type TipoDocumento } from '../../../services/documentoService';
 
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl });
@@ -81,14 +81,10 @@ const styles = `
 const labelCls = "text-sm font-semibold mb-1.5 block";
 const req = <span style={{ color: '#ef4444' }}>*</span>;
 
-const DOCUMENTOS_CADASTRO: { tipo: TipoDocumento; obrigatorio: boolean }[] = [
-  { tipo: 'MATRICULA_ATUALIZADA',             obrigatorio: true },
-  { tipo: 'LAUDO_AVALIACAO',                  obrigatorio: true },
-  { tipo: 'TERMO_CONSOLIDACAO_PROPRIEDADE',   obrigatorio: true },
-  { tipo: 'CERTIDAO_DEBITOS_MUNICIPAIS_IPTU', obrigatorio: false },
-  { tipo: 'CERTIDAO_DEBITOS_ESTADUAIS',       obrigatorio: false },
-  { tipo: 'CERTIDAO_ONUS_REAIS',              obrigatorio: false },
-];
+const DOCUMENTOS_CADASTRO: { tipo: TipoDocumento; obrigatorio: boolean }[] =
+  (Object.keys(TIPO_DOCUMENTO_LABELS) as TipoDocumento[]).map(tipo => ({
+    tipo, obrigatorio: DOCUMENTOS_OBRIGATORIOS[tipo],
+  }));
 
 type FormData = {
   tipoImovel: string;

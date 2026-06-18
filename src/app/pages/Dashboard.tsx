@@ -6,7 +6,7 @@ import { imovelService, type ImovelAPI } from '../../services/imovelService';
 import { despesaService, type DespesaAPI } from '../../services/despesaService';
 import { leilaoService, type LeilaoAPI } from '../../services/leilaoService';
 import { negociacaoService, type NegociacaoAPI } from '../../services/negociacaoService';
-import { historicoService, type HistoricoDuracaoDTO } from '../../services/historicoService';
+import { historicoService, parseHistDate, diasNaEtapaAtual, type HistoricoDuracaoDTO } from '../../services/historicoService';
 import { gerarRelatorioPDF } from '../../services/pdfReportService';
 import ImovelMap from '../components/ImovelMap';
 import { Slider } from '../components/ui/slider';
@@ -27,15 +27,6 @@ const ETAPA_LABELS_DASH: Record<string, string> = {
   JURIDICO: 'Jurídico', MANUTENCAO_PRECIFICACAO: 'Manutenção/Precif.',
   COMERCIAL: 'Comercial', VENDA: 'Venda', POS_VENDA: 'Pós-Venda',
 };
-
-function parseHistDate(value: string | number[] | null): Date | null {
-  if (!value) return null;
-  if (Array.isArray(value)) {
-    const [y, m, d, h = 0, mi = 0] = value;
-    return new Date(y, m - 1, d, h, mi);
-  }
-  return new Date(value);
-}
 
 type KpiVariant = 'default' | 'success' | 'info' | 'alert';
 
@@ -88,6 +79,10 @@ export default function Dashboard() {
   const [mapDataDe,    setMapDataDe]    = useState('');
   const [mapDataAte,   setMapDataAte]   = useState('');
   const rangeInited = useRef(false);
+
+  // Relatórios filters
+  const [relEstado, setRelEstado] = useState('');
+  const [relCidade, setRelCidade] = useState('');
 
   useEffect(() => {
     imovelService.getAll()
@@ -145,6 +140,24 @@ export default function Dashboard() {
 
   const isValorFiltered = sliderMax > 0 && (mapValorRange[0] > 0 || mapValorRange[1] < sliderMax);
 
+  const relCidades = [...new Set(
+    imoveis
+      .filter(i => !relEstado || i.enderecoDTO?.estadoSigla === relEstado)
+      .map(i => i.enderecoDTO?.cidadeNome)
+      .filter(Boolean)
+  )].sort() as string[];
+
+  const imoveisRelatorio = imoveis.filter(i => {
+    if (relEstado && i.enderecoDTO?.estadoSigla !== relEstado) return false;
+    if (relCidade && i.enderecoDTO?.cidadeNome  !== relCidade) return false;
+    return true;
+  });
+  const imoveisRelatorioIds = new Set(imoveisRelatorio.map(i => i.id));
+  const historicosRelatorio   = historicos.filter(h => imoveisRelatorioIds.has(h.imovelId));
+  const despesasRelatorio     = despesas.filter(d => imoveisRelatorioIds.has(d.imovelId));
+  const negociacoesRelatorio  = negociacoes.filter(n => imoveisRelatorioIds.has(n.imovelId));
+  const leiloesRelatorio      = leiloes.filter(l => imoveisRelatorioIds.has(l.imovelId));
+
   const total          = imoveis.length;
   const valorTotal     = imoveis.reduce((s, i) => s + (i.valorAvaliacao ?? 0), 0);
   const mediaValor     = total > 0 ? valorTotal / total : 0;
@@ -168,7 +181,7 @@ export default function Dashboard() {
 
   // ── Tempo Médio por Etapa ──
   const etapaDurMap = new Map<string, number[]>();
-  for (const h of historicos) {
+  for (const h of historicosRelatorio) {
     if (h.days == null) continue;
     const arr = etapaDurMap.get(h.etapa) ?? [];
     arr.push(h.days);
@@ -187,22 +200,22 @@ export default function Dashboard() {
 
   // ── Financeiro: despesas ──
   const despesasPorCategoriaMap = new Map<string, number>();
-  for (const d of despesas) {
+  for (const d of despesasRelatorio) {
     despesasPorCategoriaMap.set(d.categoria, (despesasPorCategoriaMap.get(d.categoria) ?? 0) + d.valor);
   }
   const despesasPorCategoria = [...despesasPorCategoriaMap.entries()]
     .map(([categoria, valor]) => ({ categoria, valor }))
     .sort((a, b) => b.valor - a.valor);
-  const despesasAprovadas = despesas.filter(d => d.aprovado).reduce((s, d) => s + d.valor, 0);
-  const despesasPendentes = despesas.filter(d => !d.aprovado).reduce((s, d) => s + d.valor, 0);
+  const despesasAprovadas = despesasRelatorio.filter(d => d.aprovado).reduce((s, d) => s + d.valor, 0);
+  const despesasPendentes = despesasRelatorio.filter(d => !d.aprovado).reduce((s, d) => s + d.valor, 0);
 
   // ── Financeiro: negociações ──
-  const negAmigavel    = negociacoes.filter(n => n.amigavel).length;
-  const negNaoAmigavel = negociacoes.filter(n => !n.amigavel).length;
-  const negTotal       = negociacoes.length;
-  const valorNegociadoTotal = negociacoes.reduce((s, n) => s + n.valor, 0);
-  const imoveisNegociadosIds = new Set(negociacoes.map(n => n.imovelId));
-  const valorAvaliacaoNegociados = imoveis
+  const negAmigavel    = negociacoesRelatorio.filter(n => n.amigavel).length;
+  const negNaoAmigavel = negociacoesRelatorio.filter(n => !n.amigavel).length;
+  const negTotal       = negociacoesRelatorio.length;
+  const valorNegociadoTotal = negociacoesRelatorio.reduce((s, n) => s + n.valor, 0);
+  const imoveisNegociadosIds = new Set(negociacoesRelatorio.map(n => n.imovelId));
+  const valorAvaliacaoNegociados = imoveisRelatorio
     .filter(i => imoveisNegociadosIds.has(i.id))
     .reduce((s, i) => s + (i.valorAvaliacao ?? 0), 0);
   const diffNegociacaoPct = valorAvaliacaoNegociados > 0
@@ -211,7 +224,7 @@ export default function Dashboard() {
 
   // ── Leilões: taxa de sucesso por número ──
   const leilaoPorNumero = [1, 2, 3].map(num => {
-    const doNumero = leiloes.filter(l => l.numero === num);
+    const doNumero = leiloesRelatorio.filter(l => l.numero === num);
     const concluidos = doNumero.filter(l => l.status === 'COMERCIALIZAÇÃO').length;
     return {
       numero: `${num}º Leilão`,
@@ -232,14 +245,14 @@ export default function Dashboard() {
     });
   }
   const cadastrosPorMes = new Map<string, number>();
-  for (const i of imoveis) {
+  for (const i of imoveisRelatorio) {
     if (!i.createdAt) continue;
     const d = new Date(i.createdAt);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     cadastrosPorMes.set(key, (cadastrosPorMes.get(key) ?? 0) + 1);
   }
   const vendasPorMes = new Map<string, number>();
-  for (const h of historicos) {
+  for (const h of historicosRelatorio) {
     if (h.etapa !== 'VENDA') continue;
     const d = parseHistDate(h.startedAt);
     if (!d) continue;
@@ -253,12 +266,17 @@ export default function Dashboard() {
   }));
 
   // ── SLA distribution ──
+  const historicoPorImovel = new Map<string, HistoricoDuracaoDTO[]>();
+  for (const h of historicos) {
+    const arr = historicoPorImovel.get(h.imovelId) ?? [];
+    arr.push(h);
+    historicoPorImovel.set(h.imovelId, arr);
+  }
   const slaCounts = { prazo: 0, atencao: 0, vencido: 0 };
   for (const i of imoveis) {
     const etapa  = i.etapa ?? 'CADASTRO';
     const limite = SLA_DIAS_DASH[etapa] ?? 60;
-    const dataRef = i.dataAvaliacao ? new Date(i.dataAvaliacao) : new Date();
-    const dias   = Math.max(0, Math.floor((Date.now() - dataRef.getTime()) / 86400000));
+    const dias   = diasNaEtapaAtual(etapa, historicoPorImovel.get(i.id) ?? [], i.createdAt ? new Date(i.createdAt) : null);
     const pct    = limite > 0 ? dias / limite : 0;
     if (pct >= 1)         slaCounts.vencido++;
     else if (pct >= 0.75) slaCounts.atencao++;
@@ -297,7 +315,12 @@ export default function Dashboard() {
       </div>
 
       {/* SLA Distribution */}
-      {total > 0 && (
+      {total > 0 && reportsLoading && (
+        <div className="rounded-xl p-10 flex items-center justify-center" style={cardStyle}>
+          <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+        </div>
+      )}
+      {total > 0 && !reportsLoading && (
         <div className="rounded-xl p-6" style={cardStyle}>
           <p className="text-base font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Status de SLA</p>
           <div className="grid grid-cols-3 gap-4 mb-4">
@@ -467,6 +490,37 @@ export default function Dashboard() {
             >
               <FileDown className="h-4 w-4" /> Exportar PDF
             </button>
+          </div>
+
+          {/* Filtro por estado/cidade */}
+          <div className="flex items-center gap-3">
+            <select
+              value={relEstado}
+              onChange={e => { setRelEstado(e.target.value); setRelCidade(''); }}
+              className="px-3 py-2 rounded-lg border text-sm outline-none"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+            >
+              <option value="">Todos os estados</option>
+              {estados.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select
+              value={relCidade}
+              onChange={e => setRelCidade(e.target.value)}
+              className="px-3 py-2 rounded-lg border text-sm outline-none"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+            >
+              <option value="">Todas as cidades</option>
+              {relCidades.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {(relEstado || relCidade) && (
+              <button
+                onClick={() => { setRelEstado(''); setRelCidade(''); }}
+                className="px-3 py-2 rounded-lg border text-xs font-semibold"
+                style={{ color: 'var(--ailos-vermelho-500)', borderColor: 'var(--ailos-vermelho-100)', background: 'var(--ailos-vermelho-50)' }}
+              >
+                Limpar filtro
+              </button>
+            )}
           </div>
 
           {reportsLoading ? (

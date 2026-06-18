@@ -5,7 +5,7 @@ import { ArrowLeft, MapPin, DollarSign, FileText, Building2, Plus, Pencil, X, Sa
 import { imovelService, enderecoLabel, imovelLabel, etapaToFlowStage, etapaLabel, STATUS_CONFIG, type ImovelAPI, type ImovelEtapa, type ImovelStatus } from '../../../services/imovelService';
 import { negociacaoService, type NegociacaoAPI, type NegociacaoPayload } from '../../../services/negociacaoService';
 import { clienteService, type ClienteAPI } from '../../../services/clienteService';
-import { documentoService, TIPO_DOCUMENTO_LABELS, type DocumentoAPI, type TipoDocumento } from '../../../services/documentoService';
+import { documentoService, TIPO_DOCUMENTO_LABELS, DOCUMENTOS_OBRIGATORIOS, type DocumentoAPI, type TipoDocumento } from '../../../services/documentoService';
 import { despesaService, type DespesaAPI, type DespesaPayload } from '../../../services/despesaService';
 import { leilaoService, LEILAO_STATUS_CONFIG, type LeilaoAPI, type LeilaoPayload, type LeilaoStatus } from '../../../services/leilaoService';
 import { ocorrenciaService, type OcorrenciaAPI } from '../../../services/ocorrenciaService';
@@ -157,6 +157,20 @@ export default function PropertyFlowDetail() {
     setLeilaoForm(f => ({ ...f, valorMinimo: num.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }));
   };
 
+  const refreshImovelEHistorico = async () => {
+    if (!id) return;
+    try {
+      const [imovelAtualizado, historicoAtualizado] = await Promise.all([
+        imovelService.getById(id),
+        historicoService.getDurations(id),
+      ]);
+      setImovel(imovelAtualizado);
+      setHistorico(historicoAtualizado);
+    } catch {
+      /* ignora — etapa/SLA recarrega na próxima visita à página */
+    }
+  };
+
   const handleLeilaoSubmit = async () => {
     setLeilaoError('');
     if (!leilaoForm.numero)      { setLeilaoError('Informe o número do leilão.'); return; }
@@ -176,6 +190,7 @@ export default function PropertyFlowDetail() {
         await leilaoService.update(leilaoEdit.id, payload);
       } else {
         await leilaoService.create(payload);
+        await refreshImovelEHistorico();
       }
       const fresh = await leilaoService.getByImovel(id!);
       setLeiloes(Array.isArray(fresh) ? fresh.sort((a, b) => a.numero - b.numero) : []);
@@ -256,6 +271,7 @@ export default function PropertyFlowDetail() {
       } else {
         const created = await despesaService.create(payload);
         setDespesas(prev => [created, ...prev]);
+        await refreshImovelEHistorico();
       }
       setShowDespForm(false);
     } catch (err) {
@@ -295,6 +311,9 @@ export default function PropertyFlowDetail() {
       setDespDeleting(null);
     }
   };
+
+  const tiposDocumentoDisponiveis = (Object.keys(TIPO_DOCUMENTO_LABELS) as TipoDocumento[])
+    .filter(t => !documentos.some(d => d.tipo === t));
 
   const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -389,6 +408,7 @@ export default function PropertyFlowDetail() {
       } else {
         const created = await negociacaoService.create(payload);
         setNegociacoes(prev => [created, ...prev]);
+        await refreshImovelEHistorico();
       }
       setShowNegForm(false);
     } catch (err) {
@@ -1347,7 +1367,11 @@ export default function PropertyFlowDetail() {
                     {documentos.length} documento{documentos.length !== 1 ? 's' : ''} anexado{documentos.length !== 1 ? 's' : ''}
                   </p>
                   <button
-                    onClick={() => { setShowDocForm(v => !v); setDocError(''); }}
+                    onClick={() => {
+                      if (!showDocForm && tiposDocumentoDisponiveis.length > 0) setDocTipo(tiposDocumentoDisponiveis[0]);
+                      setShowDocForm(v => !v);
+                      setDocError('');
+                    }}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
                     style={{ background: 'var(--primary)' }}
                   >
@@ -1364,49 +1388,59 @@ export default function PropertyFlowDetail() {
                       </button>
                     </div>
                     <div className="p-5 space-y-4">
-                      <div>
-                        <label className="text-sm font-semibold mb-1.5 block" style={{ color: 'var(--foreground)' }}>
-                          Tipo do Documento <span style={{ color: '#ef4444' }}>*</span>
-                        </label>
-                        <select
-                          className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none"
-                          style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                          value={docTipo}
-                          onChange={e => setDocTipo(e.target.value as TipoDocumento)}
-                        >
-                          {(Object.keys(TIPO_DOCUMENTO_LABELS) as TipoDocumento[]).map(t => (
-                            <option key={t} value={t}>{TIPO_DOCUMENTO_LABELS[t]}</option>
-                          ))}
-                        </select>
-                      </div>
+                      {tiposDocumentoDisponiveis.length === 0 ? (
+                        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                          Todos os tipos de documento já foram enviados para este imóvel.
+                        </p>
+                      ) : (
+                        <>
+                          <div>
+                            <label className="text-sm font-semibold mb-1.5 block" style={{ color: 'var(--foreground)' }}>
+                              Tipo do Documento <span style={{ color: '#ef4444' }}>*</span>
+                            </label>
+                            <select
+                              className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none"
+                              style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                              value={docTipo}
+                              onChange={e => setDocTipo(e.target.value as TipoDocumento)}
+                            >
+                              {tiposDocumentoDisponiveis.map(t => (
+                                <option key={t} value={t}>
+                                  {TIPO_DOCUMENTO_LABELS[t]} · {DOCUMENTOS_OBRIGATORIOS[t] ? 'Obrigatório' : 'Opcional'}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
-                      {docError && (
-                        <div className="flex items-start gap-2 rounded-xl px-4 py-3 border"
-                          style={{ background: 'var(--ailos-vermelho-50)', borderColor: 'var(--ailos-vermelho-100)' }}>
-                          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ailos-vermelho-500)' }} />
-                          <p className="text-sm" style={{ color: 'var(--ailos-vermelho-500)' }}>{docError}</p>
-                        </div>
+                          {docError && (
+                            <div className="flex items-start gap-2 rounded-xl px-4 py-3 border"
+                              style={{ background: 'var(--ailos-vermelho-50)', borderColor: 'var(--ailos-vermelho-100)' }}>
+                              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ailos-vermelho-500)' }} />
+                              <p className="text-sm" style={{ color: 'var(--ailos-vermelho-500)' }}>{docError}</p>
+                            </div>
+                          )}
+
+                          <label
+                            className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 border-dashed text-sm font-medium cursor-pointer transition-all"
+                            style={{
+                              borderColor: docUploading ? 'var(--primary)' : 'var(--border)',
+                              color: 'var(--primary)',
+                              background: docUploading ? 'var(--ailos-azul-50)' : 'transparent',
+                              cursor: docUploading ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            {docUploading
+                              ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+                              : <><FileText className="h-4 w-4" /> Selecionar arquivo</>}
+                            <input
+                              type="file"
+                              className="hidden"
+                              disabled={docUploading}
+                              onChange={handleDocUpload}
+                            />
+                          </label>
+                        </>
                       )}
-
-                      <label
-                        className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 border-dashed text-sm font-medium cursor-pointer transition-all"
-                        style={{
-                          borderColor: docUploading ? 'var(--primary)' : 'var(--border)',
-                          color: 'var(--primary)',
-                          background: docUploading ? 'var(--ailos-azul-50)' : 'transparent',
-                          cursor: docUploading ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {docUploading
-                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
-                          : <><FileText className="h-4 w-4" /> Selecionar arquivo</>}
-                        <input
-                          type="file"
-                          className="hidden"
-                          disabled={docUploading}
-                          onChange={handleDocUpload}
-                        />
-                      </label>
                     </div>
                   </div>
                 )}

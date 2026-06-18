@@ -17,6 +17,15 @@ export const TIPO_DOCUMENTO_LABELS: Record<TipoDocumento, string> = {
   CERTIDAO_ONUS_REAIS:              'Certidão de Ônus Reais',
 };
 
+export const DOCUMENTOS_OBRIGATORIOS: Record<TipoDocumento, boolean> = {
+  MATRICULA_ATUALIZADA:             true,
+  LAUDO_AVALIACAO:                  true,
+  TERMO_CONSOLIDACAO_PROPRIEDADE:   true,
+  CERTIDAO_DEBITOS_MUNICIPAIS_IPTU: false,
+  CERTIDAO_DEBITOS_ESTADUAIS:       false,
+  CERTIDAO_ONUS_REAIS:              false,
+};
+
 export interface DocumentoAPI {
   id: string;
   tipo: TipoDocumento;

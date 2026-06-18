@@ -8,6 +8,7 @@ import {
   imovelService, enderecoLabel, imovelLabel, etapaLabel,
   STATUS_CONFIG, type ImovelAPI, type ImovelStatus, type ImovelEtapa,
 } from '../../../services/imovelService';
+import { historicoService, diasNaEtapaAtual, type HistoricoDuracaoDTO } from '../../../services/historicoService';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 const styles = `
@@ -33,11 +34,10 @@ const SLA_BADGE_CFG: Record<SLABadgeStatus, { label: string; color: string; bg: 
   'proximo-vencimento': { label: 'Atenção', color: '#CC8300', bg: '#FFF4E6', border: '#FFE9CC' },
   'vencido':            { label: 'Vencido', color: '#dc2626', bg: '#FEF2F2', border: '#FECACA' },
 };
-function calcSLA(imovel: ImovelAPI): { dias: number; limite: number; status: SLABadgeStatus } {
+function calcSLA(imovel: ImovelAPI, duracoes: HistoricoDuracaoDTO[]): { dias: number; limite: number; status: SLABadgeStatus } {
   const etapa  = imovel.etapa ?? 'CADASTRO';
   const limite = SLA_DIAS[etapa] ?? 60;
-  const dataRef = imovel.dataAvaliacao ? new Date(imovel.dataAvaliacao) : new Date();
-  const dias   = Math.max(0, Math.floor((Date.now() - dataRef.getTime()) / 86400000));
+  const dias   = Math.round(diasNaEtapaAtual(etapa, duracoes, imovel.createdAt ? new Date(imovel.createdAt) : null));
   const pct    = limite > 0 ? dias / limite : 0;
   const status: SLABadgeStatus = pct >= 1 ? 'vencido' : pct >= 0.75 ? 'proximo-vencimento' : 'no-prazo';
   return { dias, limite, status };
@@ -49,6 +49,8 @@ export default function PropertyFlowList() {
 
   const [imoveis, setImoveis]   = useState<ImovelAPI[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [historicos, setHistoricos] = useState<HistoricoDuracaoDTO[]>([]);
+  const [slaLoading, setSlaLoading] = useState(true);
   const [search, setSearch]     = useState('');
   const [filterEtapa, setFilterEtapa]   = useState<ImovelEtapa | 'todas'>('todas');
   const [filterStatus, setFilterStatus] = useState<ImovelStatus | 'todos'>('todos');
@@ -65,6 +67,21 @@ export default function PropertyFlowList() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (imoveis.length === 0) { setSlaLoading(false); return; }
+    setSlaLoading(true);
+    Promise.all(imoveis.map(i => historicoService.getDurations(i.id).catch(() => ({ duracoes: [], totalDays: 0 }))))
+      .then(results => setHistoricos(results.flatMap(r => r.duracoes)))
+      .finally(() => setSlaLoading(false));
+  }, [imoveis]);
+
+  const historicoPorImovel = new Map<string, HistoricoDuracaoDTO[]>();
+  for (const h of historicos) {
+    const arr = historicoPorImovel.get(h.imovelId) ?? [];
+    arr.push(h);
+    historicoPorImovel.set(h.imovelId, arr);
+  }
 
   const filtered = imoveis.filter(i => {
     const addr    = enderecoLabel(i).toLowerCase();
@@ -92,7 +109,7 @@ export default function PropertyFlowList() {
     },
     {
       label: 'SLA Vencido',
-      value: imoveis.filter(i => calcSLA(i).status === 'vencido').length,
+      value: slaLoading ? '—' : imoveis.filter(i => calcSLA(i, historicoPorImovel.get(i.id) ?? []).status === 'vencido').length,
       icon:  AlertTriangle,
       color: '#ef4444',
       bg:    '#FEF2F2',
@@ -317,8 +334,10 @@ export default function PropertyFlowList() {
                     </TableCell>
 
                     <TableCell>
-                      {(() => {
-                        const { dias, limite, status } = calcSLA(imovel);
+                      {slaLoading ? (
+                        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Calculando...</span>
+                      ) : (() => {
+                        const { dias, limite, status } = calcSLA(imovel, historicoPorImovel.get(imovel.id) ?? []);
                         const cfg = SLA_BADGE_CFG[status];
                         const diasRestantes = limite - dias;
                         return (
