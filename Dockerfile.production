@@ -1,0 +1,4 @@
+FROM 533266955243.dkr.ecr.us-east-1.amazonaws.com/bluvagas-production/imoveis:imoveis-s3-20260619-0735
+
+COPY --chown=spring:spring dist/ /app/static/
+ENV SPRING_WEB_RESOURCES_STATIC_LOCATIONS=file:/app/static/
