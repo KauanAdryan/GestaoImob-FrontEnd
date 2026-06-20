@@ -1,4 +1,5 @@
 import { createBrowserRouter, redirect } from 'react-router';
+import { authService } from '../services/auth';
 import PropertyFlowList from './pages/property-flow/PropertyFlowList';
 import PropertyFlowDetail from './pages/property-flow/PropertyFlowDetail';
 import LeilaoPage from './pages/property-flow/LeilaoPage';
@@ -11,31 +12,55 @@ import CadastroImovelPage from './pages/property-flow/CadastroImovelPage';
 import ClientesPage from './pages/clientes/ClientesPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import EsqueciSenha from './pages/EsqueciSenha';
 import Root from './pages/Root';
 import Dashboard from './pages/Dashboard';
+
+function requireAuth() {
+  if (!authService.isAuthenticated()) {
+    return redirect('/login');
+  }
+  return null;
+}
+
+function redirectIfAuthenticated() {
+  if (authService.isAuthenticated()) {
+    return redirect('/dashboard');
+  }
+  return null;
+}
 
 export const router = createBrowserRouter([
   // Rota de login — sem layout/sidebar
   {
     path: '/login',
     Component: Login,
+    loader: redirectIfAuthenticated,
   },
 
   // Rota de cadastro — sem layout/sidebar
   {
     path: '/cadastro',
     Component: Register,
+    loader: redirectIfAuthenticated,
   },
 
-  // Redireciona a raiz para /login
+  // Rota de recuperação de senha — sem layout/sidebar
+  {
+    path: '/esqueci-senha',
+    Component: EsqueciSenha,
+  },
+
+  // Raiz: vai para o dashboard se já estiver logado, senão para o login
   {
     path: '/',
-    loader: () => redirect('/login'),
+    loader: () => redirect(authService.isAuthenticated() ? '/dashboard' : '/login'),
   },
 
   // Rotas protegidas do sistema
   {
     Component: Root,
+    loader: requireAuth,
     children: [
       { path: '/dashboard', Component: Dashboard },
       { path: '/clientes', Component: ClientesPage },

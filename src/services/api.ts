@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+import { tokenStorage } from './tokenStorage';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
 interface RequestOptions extends RequestInit {
@@ -15,7 +17,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   };
 
   if (!skipAuth) {
-    const token = localStorage.getItem('auth_token');
+    const token = tokenStorage.getToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -24,8 +26,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const response = await fetch(`${BASE_URL}${path}`, { ...init, headers });
 
   if (response.status === 401) {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    tokenStorage.clear();
     window.location.href = '/';
   }
 

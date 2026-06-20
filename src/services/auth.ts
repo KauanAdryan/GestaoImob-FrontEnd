@@ -1,4 +1,5 @@
 import { api } from './api';
+import { tokenStorage } from './tokenStorage';
 
 export interface AuthUser {
   id: string | number;
@@ -21,31 +22,41 @@ export const authService = {
     );
   },
 
-  async login(dsEmail: string, dsSenha: string): Promise<LoginResponse> {
+  async login(dsEmail: string, dsSenha: string, lembrarDeMim = false): Promise<LoginResponse> {
     const data = await api.post<LoginResponse>(
       '/auth/login',
       { email: dsEmail, senha: dsSenha },
       { skipAuth: true },
     );
 
-    localStorage.setItem('auth_token', data.token);
-    localStorage.setItem('auth_user', JSON.stringify(data.user));
+    tokenStorage.save(data.token, data.user, lembrarDeMim);
 
     return data;
   },
 
   logout() {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    tokenStorage.clear();
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    await api.post('/auth/forgot-password', { email }, { skipAuth: true });
+  },
+
+  async verifyResetCode(email: string, codigo: string): Promise<void> {
+    await api.post('/auth/verify-reset-code', { email, codigo }, { skipAuth: true });
+  },
+
+  async resetPassword(email: string, codigo: string, novaSenha: string): Promise<void> {
+    await api.post('/auth/reset-password', { email, codigo, novaSenha }, { skipAuth: true });
   },
 
   getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    return tokenStorage.getToken();
   },
 
   getUser(): AuthUser | null {
-    // Try localStorage first (populated when backend returns user in login response)
-    const raw = localStorage.getItem('auth_user');
+    // Try localStorage/sessionStorage first (populated when backend returns user in login response)
+    const raw = tokenStorage.getRawUser();
     if (raw && raw !== 'undefined' && raw !== 'null') {
       try {
         const parsed = JSON.parse(raw) as AuthUser;
@@ -53,7 +64,7 @@ export const authService = {
       } catch {}
     }
     // Fallback: decode JWT payload to extract user info
-    const token = localStorage.getItem('auth_token');
+    const token = tokenStorage.getToken();
     if (!token) return null;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));

@@ -138,7 +138,7 @@ export default function Register() {
 
         {/* Rodapé */}
         <div className="relative z-10">
-          <p className="text-sm" style={{ color: '#a8d4e6' }}>© 2026 Ailos — Gestão de Bens</p>
+          <p className="text-sm" style={{ color: '#a8d4e6' }}>© 2026 Gestão de Bens</p>
         </div>
       </div>
 

@@ -23,7 +23,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await authService.login(dsEmail, dsSenha);
+      await authService.login(dsEmail, dsSenha, rememberMe);
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'E-mail ou senha incorretos. Tente novamente.');
@@ -115,7 +115,7 @@ export default function Login() {
 
         {/* Rodapé */}
         <div className="relative z-10">
-          <p className="text-sm" style={{ color: '#a8d4e6' }}>© 2026 Ailos — Gestão de Bens</p>
+          <p className="text-sm" style={{ color: '#a8d4e6' }}>© 2026 Gestão de Bens</p>
         </div>
       </div>
 
@@ -239,7 +239,7 @@ export default function Login() {
                   <span className="text-sm" style={{ color: '#6A6A6A' }}>Lembrar de mim</span>
                 </label>
                 <a
-                  href="#"
+                  href="/esqueci-senha"
                   className="text-sm font-medium transition-colors"
                   style={{ color: '#165C7D' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#124A65')}

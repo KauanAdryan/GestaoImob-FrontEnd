@@ -723,7 +723,7 @@ export default function CadastroImovelPage() {
                               : <FileText className="w-4 h-4" style={{ color: doc.obrigatorio ? '#d97706' : 'var(--primary)' }} />}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{TIPO_DOCUMENTO_LABELS[doc.tipo]}</p>
+                            <p className="text-sm font-medium" style={{ color: file ? '#1A3326' : 'var(--foreground)' }}>{TIPO_DOCUMENTO_LABELS[doc.tipo]}</p>
                             {file
                               ? <p className="text-xs truncate" style={{ color: '#006829' }}>{file.name}</p>
                               : doc.obrigatorio && <span className="text-xs font-semibold" style={{ color: '#d97706' }}>Obrigatório</span>}
